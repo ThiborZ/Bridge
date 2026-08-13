@@ -1,9 +1,25 @@
 # Bridge
 
-A contract bridge game. She sits South, the computer plays the other three hands.
+A contract bridge game, built as a gift. She sits South, the computer plays the
+other three hands.
+
+**Live: https://thiborz.github.io/Bridge/** — push to `main` and it deploys.
 
 System: **Acol** — weak no-trump (12–14), traditional strong two-bids, Stayman
-without transfers. Interface in English.
+without transfers. **The interface is Dutch only**; English was removed rather
+than made a toggle. The engine and the tests stay English on purpose — see
+[The interface is Dutch, the engine is not](#the-interface-is-dutch-the-engine-is-not).
+
+## A game, start to finish
+
+An empty table → **Nieuw spel** → a setup screen choosing how well the opponents
+and your partner play → **four hands, which is one Chicago cycle** → the final
+score → clear the table. Nothing is dealt and no bot moves until a game is
+started.
+
+The strengths are chosen **when setting a game up, deliberately not in the
+settings menu**: how well the opponents play belongs to the game you are sitting
+down to, like who deals, not to a list of preferences beside the brightness.
 
 ## Running it
 
@@ -11,8 +27,7 @@ without transfers. Interface in English.
 npm run dev
 ```
 
-Then open the address it prints. She sits South and plays with a mouse or a
-finger; three random-legal bots fill the other seats until phase 3 replaces them.
+Then open the address it prints.
 
 Two switches, both only for development:
 
@@ -41,10 +56,16 @@ wifi off — and why Fly, where the other project lives, would be the wrong home
 for it.
 
 **Getting it onto her iPad** is a manual step, once, on the device: open the page
-in **Safari**, tap Share, then "Add to Home Screen". No page can do this for
-itself — Safari has no install API, which is why the in-app button shows
-instructions there rather than installing. Android and desktop Chrome get a real
-install button.
+in **Safari**, tap Share, then "Zet op beginscherm". No page can do this for
+itself — iOS has no install API — which is why the menu shows instructions there
+rather than a button. Android and desktop Chrome get a real install button.
+
+**A link opened from a message cannot be installed at all.** WhatsApp, Messenger
+and the like open a webview inside themselves, and "Zet op beginscherm" is a
+Safari feature that does not exist there. The menu explains both routes, always,
+and puts whichever seems to apply first — the detection is a user-agent guess, so
+a wrong guess costs a confusing sentence rather than a dead end. WhatsApp hands
+off to real Safari and must not be flagged.
 
 **Updating it.** She never has to do anything. The worker's URL carries the build
 id, so each deploy is a distinct worker with its own cache; the page is checked
@@ -72,10 +93,10 @@ DD_FULL=1 npx vitest run test/doubledummy.test.ts    # published full-deal table
 BENCH=1 npx vitest run test/benchmark.test.ts --reporter=verbose
 ```
 
-## Phases 1 and 2 are done
+## What is where
 
-The engine is complete and touches no screen. On top of it there is now a table
-you can play a whole deal on.
+The engine touches no screen and knows nothing about Dutch. Everything a player
+reads lives under `src/ui/`.
 
 | File | What it owns |
 | --- | --- |
@@ -87,16 +108,76 @@ you can play a whole deal on.
 | `src/game.ts` | Deals from a seed, and the auction → play → score machine |
 | `src/pbn.ts` | Portable Bridge Notation, for importing published deals |
 | `src/bots/random.ts` | Legal-but-terrible bots, the fuzz harness |
-| `src/bots/heuristic.ts` | The Kitchen table card player |
+| `src/bots/heuristic.ts` | Rules of thumb — the Kitchen table player |
+| `src/bots/montecarlo.ts` | Sampling the unseen cards and solving the endgame |
+| `src/bots/levels.ts` | The three strengths, as card play |
 | `src/bidding/acol.ts` | **The system.** One list of rules, first match wins |
 | `src/bidding/evaluate.ts` | What a hand is worth and which suit it opens |
 | `src/bidding/context.ts` | What a bidder knows: its own hand and the calls so far |
 | `src/bidding/index.ts` | Applying the table, and counting what it misses |
-| `src/solver/doubleDummy.ts` | The double-dummy solver (phase 3, started early) |
+| `src/solver/doubleDummy.ts` | The double-dummy solver, including mid-trick entry |
 | `src/solver/reference.ts` | A deliberately stupid solver, for checking the real one |
-| `src/ui/main.ts` | The table: seats, bidding box, trick, result. The only file that knows a screen exists |
+| `src/ui/main.ts` | The table and the game lifecycle |
+| `src/ui/screens.ts` | Setting a game up, and finishing one |
+| `src/ui/menu.ts` | Everything that is not the game |
+| `src/ui/dutch.ts` | **All player-facing wording** |
+| `src/ui/welcome.ts` | How-it-works |
+| `src/ui/celebrate.ts` | End-of-hand effects, scaled to the score |
+| `src/ui/install.ts` | Home-screen install, offline, and updating |
 | `src/ui/settings.ts` | Choices that survive closing the tab |
+| `src/ui/roadmap.ts` | What is still to come, shown in-app |
 | `src/ui/styles.css` | How it looks |
+| `scripts/make-icons.mjs` | Generates the home-screen icons, no dependencies |
+
+### The interface is Dutch, the engine is not
+
+`contractToString` and `describeResult` in the engine produce English, and their
+tests assert on it. They are for tests and debugging, not for her. Every string a
+player sees is built in `src/ui/dutch.ts`, which keeps the engine language-free
+and its tests intact.
+
+Dutch bridge terms, not translations of the English ones: **SA** not NT, *kleur*
+for suit, *leider*, *blinde*, *slag*, *manche*, *slem*, *kwetsbaar*, *gever*,
+*volgbod*, *regelmatige verdeling*. Court cards render **H / V / B**. Cards are
+named suit-first — *ruiten vrouw*, not *vrouw ruiten*.
+
+To translate in bulk, **use a Node script, never PowerShell** — the PowerShell
+text cmdlets turn en-dashes and curly apostrophes into mojibake.
+
+### The three strengths are measured, not asserted
+
+The solver is hopeless on a whole deal (17 seconds to 17 minutes for one deal's
+grid) and sub-millisecond with five tricks left. So the heuristic plays the early
+cards and Monte Carlo takes over for the **endgame**, which is where contracts are
+decided.
+
+| | Plays by | Solves from |
+| --- | --- | --- |
+| Huiskamer | rules of thumb only | never |
+| Clubavond | thumb, then calculation | last 4 tricks, 12 layouts |
+| Wedstrijd | thumb, then calculation | last 6 tricks, 24 layouts |
+
+Over 40 identical deals: clubavond takes 14 more tricks than huiskamer,
+wedstrijd 23 more than clubavond, and head to head wedstrijd takes **302 tricks
+against the plain heuristic's 218**. Slowest single decision 44ms, against the
+750ms pause between cards.
+
+**Seven tricks deep was tried and rejected**: nine times the thinking (387ms) for
+a gain inside the noise. Six is a measurement, not a preference — raising it means
+re-measuring on the slowest device that matters, which is not this laptop.
+
+**No level cheats.** Every bot sees its own hand, dummy once it is face up, the
+cards played, and how many cards each player holds — all of it public at a real
+table. The unseen cards are *sampled*. Difficulty is how well they reason. A weak
+level is weak by **omission**; noise reads as a bug and a random partner is
+infuriating.
+
+### A setting has to reach everything it governs
+
+The strength setting reached the card play and not the bidding, so a *huiskamer*
+opponent played badly and still bid the full Acol system. Nothing failed and no
+test caught it — `decideCall` simply fell back to its default. When adding a
+setting, find every consumer.
 
 ### Two-colour or four-colour cards
 
@@ -359,13 +440,22 @@ all while a trick is on the table. Any timer added later gets its own handle.
 
 ## Next
 
-- **Phase 3, the rest of it** — the solver into a worker, and fast enough to run
-  Monte Carlo behind it. That is Club night and Tournament. Kitchen table is done.
-- **Phase 5** — undo, the difficulty picker, larger cards, PWA install. The tiers
-  are already tagged on every rule; nothing reads them yet but `decideCall`.
-- **Phase 4, the rest** — Blackwood, and competition past the first round.
-  The coverage test says where.
+1. **Play a whole game on a real phone or tablet.** Emulation reproduces the
+   width and the touch model but not the browser's own bars, and it has already
+   missed a real bug that one screenshot from a phone caught immediately. This is
+   the most valuable thing left.
+2. **Save the hand in progress.** Nothing is persisted but the settings, so if
+   the tablet drops the app from memory the game is gone — which bites precisely
+   the "put it down and pick it up an hour later" case. Top of the in-app list.
+3. **Keeping score across games** — the thing she asked for first.
+4. **Then put it in front of her.** The real acceptance test, three hands without
+   a question, has never been run.
 
-Still open, and worth settling before phase 4: the exact point ranges (especially
-the no-trump rebid), whether scoring is Chicago or duplicate, and whether she always
-sits South. `src/seats.ts` already implements both vulnerability cycles.
+Deliberately missing, and worth leaving missing until asked: Blackwood,
+competition past the first round (about 11% of calls are the system declining to
+model further — the coverage test prints them), and undo.
+
+Still open and small: whether she always sits South, and the exact point ranges
+in the Acol table, which are conventional defaults rather than hers — especially
+the no-trump rebid range. `src/seats.ts` implements both vulnerability cycles;
+the game currently runs Chicago, four hands to a game.
