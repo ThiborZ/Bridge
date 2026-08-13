@@ -34,15 +34,16 @@ import { chooseCard } from '../bots/levels.js';
 import type { Tier } from '../bots/levels.js';
 import { decideCall } from '../bidding/index.js';
 import { registerServiceWorker, watchInstallability } from './install.js';
-import { currentSettings, loadSettings } from './settings.js';
-import { SUIT_SYMBOL, element } from './dom.js';
+import { currentSettings, loadSettings, updateSettings } from './settings.js';
+import { SUIT_SYMBOL, button, element } from './dom.js';
 import {
   SEAT_COMPASS, SEAT_NAME as SEAT_NAMES, callLabel, callSpoken, cardRankLabel, cardSpoken,
   contractLabel, describeOutcome, tricks, VULNERABILITY,
 } from './dutch.js';
 import { closeMenu, renderMenu } from './menu.js';
 import { markWelcomeSeen, renderWelcome } from './welcome.js';
-import { renderHome } from './home.js';
+import { HANDS_PER_GAME, renderFinished, renderSetup } from './screens.js';
+import type { Strengths } from './screens.js';
 import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
 import type { Celebration } from './celebrate.js';
 
@@ -99,6 +100,33 @@ type Session = {
 const app = document.getElementById('app')!;
 let session: Session = newSession();
 loadSettings(); // reads storage and stamps the document; the module holds the state
+
+/**
+ * A game has a beginning and an end.
+ *
+ *   empty    a bare table. Nothing dealt, nobody playing.
+ *   setup    choosing who you are playing against, before any cards exist.
+ *   playing  four hands, which is one Chicago cycle — the same cycle the
+ *            vulnerability already turns on, so a game ends where the scoring
+ *            says it should.
+ *   finished the final score, until the table is cleared.
+ *
+ * It used to open mid-auction with cards already dealt, which gave no moment to
+ * decide anything and no moment to stop.
+ */
+type Screen = 'empty' | 'setup' | 'playing' | 'finished';
+let screen: Screen = 'empty';
+
+/**
+ * Chosen while setting a game up and fixed for the length of that game. The
+ * last choice is remembered, so the second game does not start by asking the
+ * same question again — it just offers the same answer.
+ */
+let chosenStrengths: Strengths = {
+  opponents: currentSettings().opponents,
+  partner: currentSettings().partner,
+};
+let gameStrengths: Strengths = chosenStrengths;
 
 /**
  * Two separate handles, and they must stay separate. They were one, and a tap
@@ -164,7 +192,7 @@ function advance(): void {
   // A card lifted for a second tap must not survive into somebody else's turn.
   selectedCard = null;
   render();
-  if (screen !== 'game') return;    // nobody plays while the home screen is up
+  if (screen !== 'playing') return; // nobody plays at an empty or finished table
   if (session.pendingTrick) return; // the pause timer owns what happens next
   const turn = turnOf(session.game);
   if (turn === null || waitingForHer(session.game)) return;
@@ -179,8 +207,7 @@ function advance(): void {
  * can be the one carrying her or the one she has to carry.
  */
 function tierFor(seat: Seat): Tier {
-  const settings = currentSettings();
-  return seat === partnerOf(HUMAN) ? settings.partner : settings.opponents;
+  return seat === partnerOf(HUMAN) ? gameStrengths.partner : gameStrengths.opponents;
 }
 
 function botMove(): void {
@@ -243,6 +270,15 @@ function applyUpdateIfWaiting(): boolean {
 }
 
 function nextHand(): void {
+  // Four hands is one Chicago cycle, and the end of a game.
+  if (session.handNumber >= HANDS_PER_GAME) {
+    window.clearTimeout(botTimer);
+    window.clearTimeout(pauseTimer);
+    clearCelebration();
+    screen = 'finished';
+    render();
+    return;
+  }
   if (applyUpdateIfWaiting()) return;
   window.clearTimeout(pauseTimer); // a pause left over from the last trick
   const handNumber = session.handNumber + 1;
@@ -556,10 +592,8 @@ function renderResult(): HTMLElement {
     section.append(table);
   }
 
-  const next = element('button', 'action', 'Volgend spel');
-  next.type = 'button';
-  next.addEventListener('click', nextHand);
-  section.append(next);
+  const last = session.handNumber >= HANDS_PER_GAME;
+  section.append(button('action', last ? 'Eindstand' : 'Volgend spel', nextHand));
   return section;
 }
 
@@ -567,9 +601,18 @@ function renderPanel(): HTMLElement {
   const { game } = session;
   const panel = element('aside', 'panel');
 
+  if (!tableIsSet()) {
+    const idle = element('section');
+    idle.append(element('h2', undefined, 'Geen spel bezig'));
+    idle.append(element('div', 'hint',
+      'Een spel is vier gevers lang. Daarna zie je de eindstand en ruim je de tafel op.'));
+    panel.append(idle);
+    return panel;
+  }
+
   const header = element('section');
   header.append(
-    element('div', 'hand-number', `Spel ${session.handNumber}`),
+    element('div', 'hand-number', `Spel ${session.handNumber} van ${HANDS_PER_GAME}`),
     element('div', 'deal-line',
       `spel ${game.deal.id} · gever ${SEAT_COMPASS[game.deal.dealer]} · kwetsbaar ${VULNERABILITY[game.deal.vulnerability]}`),
   );
@@ -637,9 +680,6 @@ function renderPanel(): HTMLElement {
  * What is on screen. It opens on `home` and waits to be told to start, rather
  * than dealing the moment it loads.
  */
-let screen: 'home' | 'game' = 'home';
-/** True once a game has been started, so home can offer to resume it. */
-let gameUnderWay = false;
 let showingWelcome = false;
 
 function dismissWelcome(): void {
@@ -648,51 +688,86 @@ function dismissWelcome(): void {
   render();
 }
 
-function startNewGame(): void {
+function openSetup(): void {
+  window.clearTimeout(botTimer);
+  window.clearTimeout(pauseTimer);
+  screen = 'setup';
+  render();
+}
+
+function beginGame(): void {
   window.clearTimeout(botTimer);
   window.clearTimeout(pauseTimer);
   clearCelebration();
   session = newSession();
-  screen = 'game';
-  gameUnderWay = true;
+  gameStrengths = chosenStrengths;
+  updateSettings(chosenStrengths); // remembered as the default for next time
+  screen = 'playing';
   advance();
 }
 
-function goHome(): void {
+/** Back to a bare table, with nothing dealt. */
+function clearTable(): void {
   window.clearTimeout(botTimer);
-  screen = 'home';
+  window.clearTimeout(pauseTimer);
+  clearCelebration();
+  session = newSession();
+  screen = 'empty';
   render();
 }
 
-function renderHomeScreen(): HTMLElement {
-  return renderHome({
-    onNewGame: startNewGame,
-    onHowToPlay: () => { showingWelcome = true; render(); },
-    onResume: gameUnderWay ? () => { screen = 'game'; advance(); } : undefined,
-  });
-}
+const tableIsSet = (): boolean => screen === 'playing' || screen === 'finished';
 
 function render(): void {
   const table = element('div', 'table');
-  table.append(
-    renderSeat('N', 'north', false),
-    renderSeat('W', 'west', true),
-    renderTrick(),
-    renderSeat('E', 'east', true),
-    renderSeat('S', 'south', false),
-  );
+  if (tableIsSet()) {
+    table.append(
+      renderSeat('N', 'north', false),
+      renderSeat('W', 'west', true),
+      renderTrick(),
+      renderSeat('E', 'east', true),
+      renderSeat('S', 'south', false),
+    );
+  } else {
+    // A bare table: no hands, no nameplates, nothing dealt.
+    const middle = element('div', 'middle');
+    const message = element('div', 'middle-message empty-table');
+    message.append(element('strong', undefined, 'De tafel is leeg'));
+    message.append(element('span', undefined,
+      'Begin een nieuw spel — hieronder, of via het menu linksboven.'));
+    const start = element('div', 'empty-actions');
+    start.append(button('action', 'Nieuw spel', openSetup));
+    message.append(start);
+    middle.append(message);
+    table.append(middle);
+  }
   // The menu lives over the table so it stays put whatever the panel is doing.
   table.append(renderMenu({
     refresh: render,
     showHowToPlay: () => { showingWelcome = true; render(); },
-    onNewGame: startNewGame,
-    onHome: goHome,
+    onNewGame: openSetup,
     updateWaiting,
     applyUpdate: () => location.reload(),
   }));
 
   const children: HTMLElement[] = [table, renderPanel()];
-  if (screen === 'home') children.push(renderHomeScreen());
+
+  if (screen === 'setup') {
+    children.push(renderSetup({
+      strengths: chosenStrengths,
+      onChange: (strengths) => { chosenStrengths = strengths; render(); },
+      onStart: beginGame,
+      onCancel: screen === 'setup' && tableIsSet() ? undefined : () => { screen = 'empty'; render(); },
+    }));
+  }
+  if (screen === 'finished') {
+    children.push(renderFinished({
+      northSouth: session.totals.NS,
+      eastWest: session.totals.EW,
+      strengths: gameStrengths,
+      onClear: clearTable,
+    }));
+  }
   if (showingWelcome) children.push(renderWelcome(dismissWelcome));
   app.replaceChildren(...children);
 }

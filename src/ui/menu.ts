@@ -18,15 +18,12 @@ import {
   BRIGHTNESS_STEPS, canStepBrightness, currentSettings, stepBrightness, updateSettings,
 } from './settings.js';
 import type { DeckColours, PanelSide } from './settings.js';
-import { TIERS } from '../bots/levels.js';
-import type { Tier } from '../bots/levels.js';
 
 export type MenuHooks = {
   /** Re-render everything; the menu does not own the page. */
   readonly refresh: () => void;
   readonly showHowToPlay: () => void;
   readonly onNewGame: () => void;
-  readonly onHome: () => void;
   /** True when a newer version has been fetched and is waiting. */
   readonly updateWaiting: boolean;
   readonly applyUpdate: () => void;
@@ -118,32 +115,6 @@ function choices<T extends string>(
     group.append(choice);
   }
   return group;
-}
-
-const TIER_LABEL: Record<Tier, string> = {
-  kitchen: 'Huiskamer',
-  club: 'Clubavond',
-  tournament: 'Wedstrijd',
-};
-
-function levelSection(refresh: () => void): HTMLElement {
-  const section = element('section', 'menu-section');
-  section.append(element('h3', undefined, 'Sterkte'));
-
-  const tiers = TIERS.map((tier) => ({ value: tier, label: TIER_LABEL[tier] }));
-
-  section.append(element('div', 'setting-name', 'Tegenstanders'));
-  section.append(choices('Sterkte van de tegenstanders', tiers, currentSettings().opponents,
-    (opponents) => { if (updateSettings({ opponents })) refresh(); }));
-
-  section.append(element('div', 'setting-name', 'Je partner'));
-  section.append(choices('Sterkte van je partner', tiers, currentSettings().partner,
-    (partner) => { if (updateSettings({ partner })) refresh(); }));
-
-  section.append(element('p', 'hint',
-    'Op huiskamer spelen ze op gevoel. Op wedstrijd rekenen ze het eindspel helemaal uit — dan moet je scherp zijn. ' +
-    'Je partner staat apart, dus hij mag ook beter of juist zwakker zijn dan de tegenstanders.'));
-  return section;
 }
 
 function brightnessControl(refresh: () => void): HTMLElement {
@@ -270,10 +241,6 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
     closeMenu();
     hooks.onNewGame();
   }));
-  top.append(button('action quiet wide', 'Naar het beginscherm', () => {
-    closeMenu();
-    hooks.onHome();
-  }));
   top.append(button('action quiet wide', 'Hoe werkt het?', () => {
     closeMenu();
     hooks.showHowToPlay();
@@ -283,7 +250,11 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
   const update = updateSection(hooks);
   if (update) panel.append(update);
 
-  panel.append(levelSection(hooks.refresh));
+  /*
+   * No strength setting here. How well the opponents play belongs to the game
+   * being set up, alongside who deals — not to a menu of preferences like how
+   * bright the screen is. It is chosen on the new-game screen.
+   */
 
   const cards = element('section', 'menu-section');
   cards.append(element('h3', undefined, 'Kaarten'));

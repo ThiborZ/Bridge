@@ -933,10 +933,18 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
 }
 .welcome-points li { display: flex; flex-direction: column; gap: 3px; }
 
-/* the opening screen */
-.home-setting { margin: 0; color: var(--text-soft); font-size: 0.88rem; line-height: 1.55; }
+/* setting a game up, and finishing one */
 .home-actions { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
-.home .welcome-card { gap: 14px; }
+.setup-choice { display: flex; flex-direction: column; gap: 8px; }
+.setup .welcome-card, .finished .welcome-card { gap: 18px; }
+.final-score { font-size: 1rem; }
+.final-score td { padding: 8px 0; }
+.final-score tr.total td { font-size: 1.1rem; }
+
+/* the bare table */
+.empty-table { pointer-events: auto; }
+.empty-actions { margin-top: 18px; display: flex; justify-content: center; }
+.empty-actions .action { min-width: 220px; }
 .welcome-heading { font-weight: 650; font-size: 0.95rem; }
 .welcome-body { color: var(--text-soft); font-size: 0.9rem; line-height: 1.55; }
 
