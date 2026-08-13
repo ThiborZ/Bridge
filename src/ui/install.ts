@@ -31,6 +31,7 @@ export type InstallState =
   | { kind: 'installed' }        // already on the home screen; say nothing
   | { kind: 'prompt' }           // a real install is available
   | { kind: 'instructions-ios' } // tell her where the Share button is
+  | { kind: 'open-in-safari' }   // an in-app browser: it cannot be done here at all
   | { kind: 'none' };            // nothing useful to offer
 
 export function watchInstallability(notify: () => void): void {
@@ -57,23 +58,46 @@ function runningAsApp(): boolean {
   );
 }
 
-function isIosSafari(): boolean {
+function isIos(): boolean {
   const agent = navigator.userAgent;
-  const iOS =
+  return (
     /iPad|iPhone|iPod/.test(agent) ||
     // An iPad on recent iOS reports itself as a Mac; the touch points give it away.
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // Chrome and Firefox on iOS are Safari underneath but have no Share → Add flow
-  // in the same place, so only offer the instructions where they are accurate.
-  const reallySafari = /Safari/.test(agent) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(agent);
-  return iOS && reallySafari;
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+/**
+ * A browser embedded inside another app — a link tapped in Messenger, WhatsApp,
+ * Instagram, Gmail.
+ *
+ * This matters more than it looks: **"Add to Home Screen" does not exist in an
+ * in-app browser at all.** It is a Safari feature, and these are not Safari.
+ * Detecting the case is the difference between showing instructions that cannot
+ * be followed and telling somebody the one thing that actually helps — open it
+ * in Safari first.
+ *
+ * Sniffing the user agent is unreliable in general; here it only decides which
+ * *advice* to print, so being wrong costs a confusing sentence rather than a
+ * broken feature.
+ */
+function isInAppBrowser(): boolean {
+  const agent = navigator.userAgent;
+  return /FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Line\/|MicroMessenger|Twitter|Snapchat|Pinterest|GSA\/|DuckDuckGo/.test(agent);
+}
+
+function isSafariProper(): boolean {
+  const agent = navigator.userAgent;
+  // Chrome and Firefox on iOS are Safari underneath but put the flow elsewhere.
+  return /Safari/.test(agent) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(agent) && !isInAppBrowser();
 }
 
 export function installState(): InstallState {
   if (runningAsApp()) return { kind: 'installed' };
   if (dismissed) return { kind: 'none' };
   if (deferred) return { kind: 'prompt' };
-  if (isIosSafari()) return { kind: 'instructions-ios' };
+  if (isIos() && isInAppBrowser()) return { kind: 'open-in-safari' };
+  if (isIos() && isSafariProper()) return { kind: 'instructions-ios' };
   return { kind: 'none' };
 }
 

@@ -158,35 +158,67 @@ function roadmapList(): HTMLElement {
   return list;
 }
 
-function installSection(refresh: () => void): HTMLElement | null {
+/**
+ * How to get Bridge onto the home screen — always present in the menu, whatever
+ * the browser, rather than only when it happens to be offerable.
+ *
+ * The case that actually bites: a link tapped in WhatsApp, Messenger or mail
+ * opens in a window *inside that app*, and "Zet op beginscherm" does not exist
+ * there at all. Detecting that is a user-agent guess, and guesses are sometimes
+ * wrong — so both situations are explained, always, and the one that seems to
+ * apply is put first. Somebody looking for this will find it; nobody is having
+ * it pushed at them, because it lives behind the menu.
+ */
+function installSection(refresh: () => void): HTMLElement {
   const state = installState();
-  if (state.kind === 'installed' || state.kind === 'none') return null;
-
   const section = element('section', 'menu-section');
   section.append(element('h3', undefined, 'Op je beginscherm'));
 
-  if (state.kind === 'prompt') {
-    section.append(element('p', 'hint',
-      'Zet Bridge op je beginscherm, dan opent het als een app en werkt het ook zonder wifi.'));
-    section.append(button('action', 'Op beginscherm zetten', () => { void askToInstall(); }));
-  } else {
-    section.append(button('action', 'Op beginscherm zetten', () => {
-      expanded = expanded === 'ios' ? 'none' : 'ios';
-      refresh();
-    }));
-    if (expanded === 'ios') {
-      const steps = element('ol', 'steps');
-      for (const text of [
-        'Tik op de deelknop — het vierkantje met het pijltje eruit.',
-        'Scroll omlaag en tik op “Zet op beginscherm”.',
-        'Tik op “Voeg toe”. Bridge staat dan op je beginscherm als elke andere app.',
-      ]) steps.append(element('li', undefined, text));
-      section.append(steps);
-      section.append(element('p', 'hint',
-        'Dit moet in Safari — andere browsers op een iPad hebben deze knop niet.'));
-    }
+  if (state.kind === 'installed') {
+    section.append(element('p', 'hint', 'Bridge staat al op je beginscherm. Niets te doen.'));
+    return section;
   }
-  section.append(button('action quiet', 'Nu even niet', () => { dismissInstall(); refresh(); }));
+
+  section.append(element('p', 'hint',
+    'Dan opent Bridge als een eigen app, zonder balken eromheen, en blijft het werken zonder wifi.'));
+
+  if (state.kind === 'prompt') {
+    section.append(button('action', 'Op beginscherm zetten', () => { void askToInstall(); }));
+    section.append(button('action quiet', 'Nu even niet', () => { dismissInstall(); refresh(); }));
+    return section;
+  }
+
+  const stepList = (items: readonly string[]): HTMLElement => {
+    const list = element('ol', 'steps');
+    for (const text of items) list.append(element('li', undefined, text));
+    return list;
+  };
+
+  // In Safari it is the Share button, and nothing else.
+  const inSafari = element('div', 'steps-block');
+  inSafari.append(element('div', 'setting-name', 'In Safari'));
+  inSafari.append(stepList([
+    'Tik onderin op de deelknop — het vierkantje met een pijltje omhoog.',
+    'Scroll in die lijst omlaag naar “Zet op beginscherm”.',
+    'Tik rechtsboven op “Voeg toe”.',
+  ]));
+
+  // The one that catches people out.
+  const viaMessage = element('div', `steps-block${state.kind === 'open-in-safari' ? ' urgent' : ''}`);
+  viaMessage.append(element('div', 'setting-name', 'Geopend vanuit een bericht?'));
+  viaMessage.append(element('p', 'hint',
+    state.kind === 'open-in-safari'
+      ? 'Dat is nu zo: je kijkt in een venster binnen een andere app, en daar bestaat die knop niet.'
+      : 'Open je deze link vanuit WhatsApp, Messenger of je mail, dan kijk je in een venster binnen die app en bestaat die knop niet.'));
+  viaMessage.append(stepList([
+    'Tik rechtsboven op de drie puntjes ⋯ of op “Openen in”.',
+    'Kies “Open in Safari”.',
+    'Volg daar de drie stappen hierboven.',
+  ]));
+
+  if (state.kind === 'open-in-safari') section.append(viaMessage, inSafari);
+  else section.append(inSafari, viaMessage);
+
   return section;
 }
 
@@ -289,8 +321,7 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
     'Dit maakt het spel lichter of donkerder. De helderheid van de tablet zelf zit in het bedieningspaneel.'));
   panel.append(light);
 
-  const install = installSection(hooks.refresh);
-  if (install) panel.append(install);
+  panel.append(installSection(hooks.refresh));
 
   const coming = element('section', 'menu-section');
   coming.append(button('action quiet wide',

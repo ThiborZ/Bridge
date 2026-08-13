@@ -830,6 +830,13 @@ button.card.selected::after {
 }
 .menu-section p { margin: 0; }
 .menu-section.update { border-left: 2px solid var(--brass); padding-left: 11px; }
+
+.steps-block { display: flex; flex-direction: column; gap: 7px; }
+/* The route that applies right now, marked so it is not read as a footnote. */
+.steps-block.urgent {
+  border-left: 2px solid var(--brass);
+  padding-left: 11px;
+}
 .action.wide { width: 100%; }
 
 .side-glyph {
