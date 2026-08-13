@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Bridge</title>
+    <meta name="description" content="A game of contract bridge. You sit South; the computer plays the other three hands." />
+
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#0e5244" />
+
+    <!-- iOS ignores the manifest for home-screen installs and reads these. -->
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Bridge" />
+
+    <link rel="icon" href="./icon-192.png" type="image/png" />
+    <link rel="stylesheet" href="/src/ui/styles.css" />
+  </head>
+  <body>
+    <main id="app" aria-live="polite"></main>
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>
