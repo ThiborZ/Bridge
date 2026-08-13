@@ -67,9 +67,9 @@ describe('how big the result was', () => {
   });
 
   it('words the headline for who actually won the tricks', () => {
-    expect(headlineFor('slam', true)).toBe('Slam!');
-    expect(headlineFor('game', true)).toBe('Game!');
+    expect(headlineFor('slam', true)).toBe('Slem!');
+    expect(headlineFor('game', true)).toBe('Manche!');
     // The same score, but reached by beating them, reads differently.
-    expect(headlineFor('game', false)).toBe('Well defended');
+    expect(headlineFor('game', false)).toBe('Goed verdedigd');
   });
 });

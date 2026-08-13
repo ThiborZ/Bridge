@@ -15,59 +15,59 @@ export type Item = {
 
 export const ROADMAP: readonly Item[] = [
   {
-    title: 'Keeping score',
+    title: 'Punten bijhouden',
     detail:
-      'A running total across a session, and something worth beating — best score, longest run of contracts made, how often you find the right game.',
+      'Een totaal over een hele avond, en iets om te verslaan — je beste score, hoeveel contracten je op rij maakt, hoe vaak je de goede manche vindt.',
   },
   {
-    title: 'Three levels of opponent',
+    title: 'Drie sterktes tegenstander',
     detail:
-      'Kitchen table, Club night and Tournament — and your partner set separately, so he can be better or worse than the opposition.',
+      'Van huiskamer tot clubavond tot wedstrijd — en je partner apart in te stellen, zodat hij beter of juist zwakker is dan de tegenstanders.',
   },
   {
-    title: 'Picking up where you left off',
+    title: 'Verdergaan waar je gebleven was',
     detail:
-      'There is no clock on anything — put it down mid-hand and come back whenever you like. But if the tablet closes the app to save memory, the hand is lost and you start a fresh one. Remembering it would fix that.',
+      'Er staat nergens een klok: je kunt het spel midden in een hand wegleggen en een uur later oppakken. Maar als de tablet de app uit het geheugen gooit, is die hand weg en begin je opnieuw. Dat onthouden lost dat op.',
   },
   {
-    title: 'Taking a card back',
-    detail: 'An undo, for when a card goes down by accident.',
+    title: 'Een kaart terugnemen',
+    detail: 'Ongedaan maken, voor als er per ongeluk een kaart valt.',
   },
   {
-    title: 'A hand worth looking at again',
+    title: 'Een spel nog eens bekijken',
     detail:
-      'Replaying a deal trick by trick afterwards, and a hint on where the tricks went.',
+      'Een hand achteraf slag voor slag naspelen, met een hint over waar de slagen zijn gebleven.',
   },
   {
-    title: 'More of the bidding',
+    title: 'Meer biedsysteem',
     detail:
-      'Blackwood for slams, and bidding on after the opponents come in. The bots pass in places a player would not.',
+      'Blackwood voor slems, en doorbieden als de tegenpartij ertussen komt. Nu passen de computerspelers op plekken waar een mens dat niet zou doen.',
   },
   {
-    title: 'Another look',
-    detail: 'A second colour scheme, for a change of scene or an easier read.',
+    title: 'Een ander uiterlijk',
+    detail: 'Een tweede kleurenschema, voor de afwisseling of om het rustiger te laten lezen.',
   },
   {
-    title: 'A table on screen',
-    detail: 'Four seats, the bidding box, and a whole deal played by hand.',
+    title: 'De speeltafel',
+    detail: 'Vier plaatsen, de biedbox, en een heel spel dat je met de hand speelt.',
     done: true,
   },
   {
-    title: 'Cards played properly',
+    title: 'Fatsoenlijk kaartspel',
     detail:
-      'The bots follow suit, cash winners, lead through strength and take the finesse. They are beatable, not silly.',
+      'De computer bekent kleur, incasseert zijn slagen, speelt door de sterkte heen en neemt de snit. Te verslaan, maar niet dom.',
     done: true,
   },
   {
-    title: 'Acol bidding',
+    title: 'Acol bieden',
     detail:
-      'Weak no-trump, strong twos, Stayman without transfers. Every bid explains itself — hover a call to see what it showed.',
+      'Zwakke SA, sterke tweeën, Stayman zonder transfers. Elk bod legt zichzelf uit — houd je vinger op een bod in het biedverloop.',
     done: true,
   },
   {
-    title: 'Works without wifi',
+    title: 'Werkt zonder wifi',
     detail:
-      'Once it has been opened, it keeps working with the connection off, and updates itself between hands when there is one.',
+      'Eenmaal geopend blijft het spel werken zonder verbinding, en het werkt zichzelf bij tussen twee spellen door.',
     done: true,
   },
 ];

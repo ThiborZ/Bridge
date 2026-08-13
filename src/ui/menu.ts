@@ -47,11 +47,11 @@ export function closeMenu(): boolean {
 function deckChoice(refresh: () => void): HTMLElement {
   const group = element('div', 'segmented');
   group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', 'Card colours');
+  group.setAttribute('aria-label', 'Kaartkleuren');
 
   const options: Array<{ deck: DeckColours; label: string }> = [
-    { deck: 'two', label: 'Two colours' },
-    { deck: 'four', label: 'Four colours' },
+    { deck: 'two', label: 'Twee kleuren' },
+    { deck: 'four', label: 'Vier kleuren' },
   ];
 
   for (const { deck, label } of options) {
@@ -75,11 +75,11 @@ function deckChoice(refresh: () => void): HTMLElement {
 function sideChoice(refresh: () => void): HTMLElement {
   const group = element('div', 'segmented');
   group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', 'Which side the bidding is on');
+  group.setAttribute('aria-label', 'Aan welke kant het bieden staat');
 
   const options: Array<{ side: PanelSide; label: string }> = [
-    { side: 'left', label: 'Bidding left' },
-    { side: 'right', label: 'Bidding right' },
+    { side: 'left', label: 'Bieden links' },
+    { side: 'right', label: 'Bieden rechts' },
   ];
 
   for (const { side, label } of options) {
@@ -99,21 +99,21 @@ function brightnessControl(refresh: () => void): HTMLElement {
 
   const down = element('button', 'step', '−');
   down.type = 'button';
-  down.setAttribute('aria-label', 'Darker');
+  down.setAttribute('aria-label', 'Donkerder');
   down.disabled = !canStepBrightness(-1);
   down.addEventListener('click', () => { if (stepBrightness(-1)) refresh(); });
 
   const level = currentSettings().brightness;
   const gauge = element('div', 'gauge');
   gauge.setAttribute('role', 'img');
-  gauge.setAttribute('aria-label', `Brightness ${level + 1} of ${BRIGHTNESS_STEPS.length}`);
+  gauge.setAttribute('aria-label', `Helderheid ${level + 1} van ${BRIGHTNESS_STEPS.length}`);
   for (let i = 0; i < BRIGHTNESS_STEPS.length; i++) {
     gauge.append(element('span', i <= level ? 'pip on' : 'pip'));
   }
 
   const up = element('button', 'step', '+');
   up.type = 'button';
-  up.setAttribute('aria-label', 'Brighter');
+  up.setAttribute('aria-label', 'Helderder');
   up.disabled = !canStepBrightness(1);
   up.addEventListener('click', () => { if (stepBrightness(1)) refresh(); });
 
@@ -140,30 +140,30 @@ function installSection(refresh: () => void): HTMLElement | null {
   if (state.kind === 'installed' || state.kind === 'none') return null;
 
   const section = element('section', 'menu-section');
-  section.append(element('h3', undefined, 'On the home screen'));
+  section.append(element('h3', undefined, 'Op je beginscherm'));
 
   if (state.kind === 'prompt') {
     section.append(element('p', 'hint',
-      'Put Bridge on the home screen so it opens like an app and works without wifi.'));
-    section.append(button('action', 'Add to home screen', () => { void askToInstall(); }));
+      'Zet Bridge op je beginscherm, dan opent het als een app en werkt het ook zonder wifi.'));
+    section.append(button('action', 'Op beginscherm zetten', () => { void askToInstall(); }));
   } else {
-    section.append(button('action', 'Add to home screen', () => {
+    section.append(button('action', 'Op beginscherm zetten', () => {
       expanded = expanded === 'ios' ? 'none' : 'ios';
       refresh();
     }));
     if (expanded === 'ios') {
       const steps = element('ol', 'steps');
       for (const text of [
-        'Tap the Share button — the square with an arrow coming out of it.',
-        'Scroll down the list and tap “Add to Home Screen”.',
-        'Tap “Add”. Bridge will sit on the home screen like any other app.',
+        'Tik op de deelknop — het vierkantje met het pijltje eruit.',
+        'Scroll omlaag en tik op “Zet op beginscherm”.',
+        'Tik op “Voeg toe”. Bridge staat dan op je beginscherm als elke andere app.',
       ]) steps.append(element('li', undefined, text));
       section.append(steps);
       section.append(element('p', 'hint',
-        'It has to be Safari — other browsers on an iPad do not offer this.'));
+        'Dit moet in Safari — andere browsers op een iPad hebben deze knop niet.'));
     }
   }
-  section.append(button('action quiet', 'Not now', () => { dismissInstall(); refresh(); }));
+  section.append(button('action quiet', 'Nu even niet', () => { dismissInstall(); refresh(); }));
   return section;
 }
 
@@ -175,11 +175,11 @@ function installSection(refresh: () => void): HTMLElement | null {
 function updateSection(hooks: MenuHooks): HTMLElement | null {
   if (!hooks.updateWaiting) return null;
   const section = element('section', 'menu-section update');
-  section.append(element('h3', undefined, 'A new version is ready'));
+  section.append(element('h3', undefined, 'Er is een nieuwe versie'));
   section.append(element('p', 'hint',
-    'It has already downloaded. It will be used for the next hand — there is nothing you need to do. ' +
-    'You can also switch to it now; the hand in front of you would be lost.'));
-  section.append(button('action', 'Use it now', hooks.applyUpdate));
+    'Die is al binnengehaald. Bij het volgende spel wordt hij vanzelf gebruikt — je hoeft dus niets te doen. ' +
+    'Je kunt ook nu overstappen, maar dan vervalt het spel dat voor je ligt.'));
+  section.append(button('action', 'Nu overstappen', hooks.applyUpdate));
   return section;
 }
 
@@ -195,11 +195,11 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
   const toggle = element('button', 'menu-button', '');
   toggle.type = 'button';
   toggle.setAttribute('aria-expanded', String(open));
-  toggle.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+  toggle.setAttribute('aria-label', open ? 'Menu sluiten' : 'Menu');
   toggle.append(element('span', 'bars'), element('span', 'menu-label', 'Menu'));
   if (hooks.updateWaiting) {
     const badge = element('span', 'badge');
-    badge.setAttribute('aria-label', 'A new version is ready');
+    badge.setAttribute('aria-label', 'Er is een nieuwe versie');
     toggle.append(badge);
   }
   toggle.addEventListener('click', () => {
@@ -213,7 +213,7 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
 
   const panel = element('div', 'menu-panel');
 
-  panel.append(button('action quiet wide', 'How to play', () => {
+  panel.append(button('action quiet wide', 'Hoe werkt het?', () => {
     closeMenu();
     hooks.showHowToPlay();
   }));
@@ -222,23 +222,23 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
   if (update) panel.append(update);
 
   const cards = element('section', 'menu-section');
-  cards.append(element('h3', undefined, 'Cards'));
+  cards.append(element('h3', undefined, 'Kaarten'));
   cards.append(deckChoice(hooks.refresh));
   cards.append(element('p', 'hint',
-    'Four colours gives diamonds and clubs their own colour, which makes the suits easier to tell apart in a fanned hand.'));
+    'Bij vier kleuren krijgen ruiten en klaveren een eigen kleur. Dat scheelt bij het uit elkaar houden van de kleuren in een waaier.'));
   panel.append(cards);
 
   const layout = element('section', 'menu-section');
-  layout.append(element('h3', undefined, 'Layout'));
+  layout.append(element('h3', undefined, 'Indeling'));
   layout.append(sideChoice(hooks.refresh));
-  layout.append(element('p', 'hint', 'The menu takes whichever side the bidding does not.'));
+  layout.append(element('p', 'hint', 'Het menu gaat naar de kant waar het bieden niet staat.'));
   panel.append(layout);
 
   const light = element('section', 'menu-section');
-  light.append(element('h3', undefined, 'Brightness'));
+  light.append(element('h3', undefined, 'Helderheid'));
   light.append(brightnessControl(hooks.refresh));
   light.append(element('p', 'hint',
-    'This lightens or darkens the game. The tablet’s own brightness is in its Control Centre.'));
+    'Dit maakt het spel lichter of donkerder. De helderheid van de tablet zelf zit in het bedieningspaneel.'));
   panel.append(light);
 
   const install = installSection(hooks.refresh);
@@ -246,14 +246,14 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
 
   const coming = element('section', 'menu-section');
   coming.append(button('action quiet wide',
-    expanded === 'roadmap' ? 'Hide what’s coming' : 'What’s coming', () => {
+    expanded === 'roadmap' ? 'Verberg wat er nog komt' : 'Wat komt er nog', () => {
       expanded = expanded === 'roadmap' ? 'none' : 'roadmap';
       hooks.refresh();
     }));
   if (expanded === 'roadmap') coming.append(roadmapList());
   panel.append(coming);
 
-  panel.append(element('div', 'build-stamp', `version ${BUILD_ID}`));
+  panel.append(element('div', 'build-stamp', `versie ${BUILD_ID}`));
 
   root.append(panel);
   return root;

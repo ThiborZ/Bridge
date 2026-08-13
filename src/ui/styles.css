@@ -96,14 +96,19 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 1fr minmax(250px, 310px);
+  /*
+   * Wide enough that the bidding box gets real buttons. At the old 310px each
+   * bid was about 50px across — over the 44px minimum, but not by enough for a
+   * finger on a tablet, and a mis-tap in the auction is expensive.
+   */
+  grid-template-columns: 1fr minmax(300px, 390px);
 }
 
 /*
  * Which side the bidding sits on. The menu takes the other, so one setting
  * moves both and they can never end up stacked on the same edge.
  */
-:root[data-panel="left"] #app { grid-template-columns: minmax(250px, 310px) 1fr; }
+:root[data-panel="left"] #app { grid-template-columns: minmax(300px, 390px) 1fr; }
 :root[data-panel="left"] .panel { order: -1; border-left: none; border-right: 1px solid var(--panel-line); }
 
 /* ---------------------------------------------------------------- the table */
@@ -196,7 +201,7 @@ body {
 }
 
 .nameplate.vulnerable::after {
-  content: "vul";
+  content: "kw";
   font-size: 0.62rem;
   padding: 2px 6px;
   border-radius: 4px;
@@ -353,6 +358,46 @@ button.card:disabled { cursor: default; filter: brightness(0.72) saturate(0.55);
   box-shadow: 0 0 0 2px var(--brass), 0 5px 12px rgba(0, 0, 0, 0.32);
 }
 
+/*
+ * The card lifted by a first tap on a touch screen. Raised above its neighbours
+ * as well as lifted, so the second tap has the whole card to aim at instead of
+ * the sliver left by the overlap.
+ */
+.hand > li { position: relative; }
+button.card.selected {
+  transform: translateY(-22px);
+  z-index: 5;
+  box-shadow:
+    0 0 0 3px var(--brass),
+    0 16px 26px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+button.card.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: rgba(201, 162, 39, 0.14);
+}
+
+/* What the lifted card is waiting for, in words. */
+.tap-again {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  max-width: min(90%, 30rem);
+  text-align: center;
+  padding: 9px 15px;
+  border-radius: 999px;
+  background: rgba(201, 162, 39, 0.94);
+  color: #241b06;
+  font-size: 0.88rem;
+  font-weight: 650;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
 /* ------------------------------------------------------------- trick centre */
 
 .trick {
@@ -462,19 +507,20 @@ button.card:disabled { cursor: default; filter: brightness(0.72) saturate(0.55);
 .auction tr.current td { background: rgba(201, 162, 39, 0.12); }
 
 /* bidding box */
-.bidding-box { display: flex; flex-direction: column; gap: 6px; }
-.bid-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-.bid-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.bidding-box { display: flex; flex-direction: column; gap: 7px; }
+.bid-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.bid-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 
 .bid {
   appearance: none;
   border: 1px solid var(--panel-line);
   background: var(--panel-raised);
-  border-radius: 7px;
-  padding: 10px 0;
-  min-height: 44px;
+  border-radius: 8px;
+  padding: 12px 0;
+  /* Comfortably past the 44px guideline: this is the control she uses most. */
+  min-height: 56px;
   font-family: var(--ui);
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   font-weight: 650;
   letter-spacing: -0.01em;
   cursor: pointer;

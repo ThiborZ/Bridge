@@ -35,28 +35,28 @@ type Point = { readonly heading: string; readonly body: string };
 
 const POINTS: readonly Point[] = [
   {
-    heading: 'You sit South',
-    body: 'Your cards are along the bottom. The computer plays the other three hands, including your partner North.',
+    heading: 'Jij zit zuid',
+    body: 'Jouw kaarten liggen onderaan. De computer speelt de andere drie handen, ook die van je partner noord.',
   },
   {
-    heading: 'Bidding',
-    body: 'When it is your turn, the bidding box appears on the right — tap a call. Everyone at the table plays Acol: weak no-trump, strong twos, Stayman and no transfers. Rest your finger on any call in the auction to see what it showed.',
+    heading: 'Bieden',
+    body: 'Als jij aan de beurt bent verschijnt de biedbox ernaast — tik op een bod. Aan tafel wordt Acol gespeeld: zwakke SA, sterke tweeën, Stayman en geen transfers. Houd je vinger op een bod in het biedverloop om te zien wat het betekende.',
   },
   {
-    heading: 'Playing',
-    body: 'Tap a card to play it. Only the cards you are allowed to play are lit; the rest are dimmed, so you cannot revoke by accident.',
+    heading: 'Spelen',
+    body: 'Tik op een kaart om hem te spelen. Alleen de kaarten die je mág spelen lichten op, de rest is gedimd. Verzaken kan dus niet per ongeluk.',
   },
   {
-    heading: 'Dummy',
-    body: 'If you are declarer you play your partner’s cards as well as your own. If your partner declares, you are dummy and he plays yours — so there is nothing for you to do that hand. That is the game, not a fault.',
+    heading: 'De blinde',
+    body: 'Ben jij leider, dan speel je ook de kaarten van je partner. Speelt je partner het contract, dan ben jij de blinde en speelt hij jouw kaarten — dan heb je die hand niets te doen. Dat hoort zo; er is niets stuk.',
   },
   {
-    heading: 'Finished tricks',
-    body: 'A completed trick stays on the table for a moment, with the winning card ringed, before it is gathered up.',
+    heading: 'Gespeelde slagen',
+    body: 'Een volle slag blijft even liggen, met een gouden rand om de kaart die hem wint, voordat hij wordt opgeruimd.',
   },
   {
-    heading: 'The menu',
-    body: 'Top left. Card colours, brightness, putting Bridge on your home screen, and what is still to come.',
+    heading: 'Het menu',
+    body: 'Linksboven. Kaartkleuren, helderheid, Bridge op je beginscherm zetten, en wat er nog aan komt.',
   },
 ];
 
@@ -65,11 +65,11 @@ export function renderWelcome(onStart: () => void): HTMLElement {
   const card = element('div', 'welcome-card');
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-modal', 'true');
-  card.setAttribute('aria-label', 'How this works');
+  card.setAttribute('aria-label', 'Hoe dit werkt');
 
   card.append(element('h1', 'welcome-title', 'Bridge'));
   card.append(element('p', 'welcome-lead',
-    'A game of contract bridge against the computer. Here is how this one works.'));
+    'Een spelletje bridge tegen de computer. Zo werkt dit spel.'));
 
   const list = element('ul', 'welcome-points');
   for (const point of POINTS) {
@@ -82,7 +82,7 @@ export function renderWelcome(onStart: () => void): HTMLElement {
   }
   card.append(list);
 
-  card.append(button('action', 'Start playing', onStart));
+  card.append(button('action', 'Beginnen', onStart));
   overlay.append(card);
   return overlay;
 }

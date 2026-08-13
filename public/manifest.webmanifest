@@ -1,7 +1,8 @@
 {
   "name": "Bridge",
   "short_name": "Bridge",
-  "description": "A game of contract bridge. You sit South; the computer plays the other three hands.",
+  "lang": "nl",
+  "description": "Een spelletje bridge tegen de computer. Jij zit zuid; de computer speelt de andere drie handen.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

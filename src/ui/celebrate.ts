@@ -27,9 +27,9 @@ export function celebrationFor(score: number, level: number): Celebration {
 
 export function headlineFor(tier: Celebration, madeIt: boolean): string | null {
   switch (tier) {
-    case 'slam': return madeIt ? 'Slam!' : 'They paid for that';
-    case 'game': return madeIt ? 'Game!' : 'Well defended';
-    case 'partscore': return madeIt ? 'Made it' : 'Their contract, your tricks';
+    case 'slam': return madeIt ? 'Slem!' : 'Dat kostte ze duur';
+    case 'game': return madeIt ? 'Manche!' : 'Goed verdedigd';
+    case 'partscore': return madeIt ? 'Gemaakt' : 'Hun contract, jouw slagen';
     default: return null;
   }
 }

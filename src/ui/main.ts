@@ -19,9 +19,9 @@
  *   follow, which is exactly the complaint about the apps she already has.
  */
 
-import { RANK_CHARS, cardToString, rankOf, sortHand, suitOf } from '../cards.js';
+import { cardToString, sortHand, suitOf } from '../cards.js';
 import type { Card, Suit } from '../cards.js';
-import { STRAINS, callToString, contractToString, isLegalCall, legalCalls, tricksRequired } from '../auction.js';
+import { STRAINS, callToString, isLegalCall, legalCalls, tricksRequired } from '../auction.js';
 import type { Call } from '../auction.js';
 import { SEATS, isVulnerable, nextSeat, partnerOf, sideOf } from '../seats.js';
 import type { Seat } from '../seats.js';
@@ -29,13 +29,16 @@ import { legalPlays, trickWinner, trumpSuit } from '../play.js';
 import type { Trick } from '../play.js';
 import { applyCall, applyPlay, chicagoDeal, newGame, resultOf, turnOf } from '../game.js';
 import type { Game } from '../game.js';
-import { describeResult } from '../score.js';
 import { mulberry32 } from '../random.js';
 import { heuristicPlay } from '../bots/heuristic.js';
 import { decideCall } from '../bidding/index.js';
 import { registerServiceWorker, watchInstallability } from './install.js';
 import { loadSettings } from './settings.js';
 import { SUIT_SYMBOL, element } from './dom.js';
+import {
+  SEAT_COMPASS, SEAT_NAME as SEAT_NAMES, callLabel, callSpoken, cardRankLabel, cardSpoken,
+  contractLabel, describeOutcome, tricks, VULNERABILITY,
+} from './dutch.js';
 import { closeMenu, renderMenu } from './menu.js';
 import { hasSeenWelcome, markWelcomeSeen, renderWelcome } from './welcome.js';
 import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
@@ -51,6 +54,19 @@ const HUMAN: Seat = 'S';
  */
 const PARAMS = new URLSearchParams(location.search);
 const FAST = PARAMS.has('fast');
+
+/**
+ * With a mouse, hovering lifts a card before you commit to it — that nudge is
+ * the preview. A tablet has no hover, so a tap would be both the preview and
+ * the play, on a strip of card about a third of its width where the next card
+ * overlaps it. That is under the size a finger can reliably hit, and there is
+ * no undo.
+ *
+ * So on touch it takes two taps: the first lifts the card clear of its
+ * neighbours, the second plays it. The lifted card is raised above the others,
+ * which also makes the second tap target the whole card rather than a sliver.
+ */
+const TOUCH = window.matchMedia('(pointer: coarse)').matches;
 const CALL_DELAY = FAST ? 0 : 700;
 const CARD_DELAY = FAST ? 0 : 750;
 /**
@@ -60,7 +76,6 @@ const CARD_DELAY = FAST ? 0 : 750;
  */
 const TRICK_PAUSE = FAST ? 0 : Number(PARAMS.get('pause') ?? 1500);
 
-const SEAT_NAMES: Record<Seat, string> = { N: 'North', E: 'East', S: 'You', W: 'West' };
 
 type Session = {
   handNumber: number;
@@ -91,6 +106,9 @@ loadSettings(); // reads storage and stamps the document; the module holds the s
  */
 let botTimer: number | undefined;
 let pauseTimer: number | undefined;
+
+/** On touch, the card lifted and waiting for a second tap to play it. */
+let selectedCard: Card | null = null;
 
 function newSession(): Session {
   const rng = mulberry32(Date.now() >>> 0);
@@ -141,6 +159,8 @@ function exposedDummy(game: Game): Seat | null {
 
 function advance(): void {
   window.clearTimeout(botTimer);
+  // A card lifted for a second tap must not survive into somebody else's turn.
+  selectedCard = null;
   render();
   if (session.pendingTrick) return; // the pause timer owns what happens next
   const turn = turnOf(session.game);
@@ -235,7 +255,8 @@ function cardInnards(card: Card): HTMLElement[] {
   const suit = suitOf(card);
   const index = element('span', 'index');
   index.append(
-    element('span', 'rank', RANK_CHARS[rankOf(card) - 2]!),
+    // H, V and B — the Dutch court cards, not K, Q and J.
+    element('span', 'rank', cardRankLabel(card)),
     element('span', 'pip', SUIT_SYMBOL[suit]),
   );
   return [index, element('span', 'watermark', SUIT_SYMBOL[suit])];
@@ -244,26 +265,26 @@ function cardInnards(card: Card): HTMLElement[] {
 function cardFace(card: Card): HTMLElement {
   const node = element('span', `card suit-${suitOf(card)}`);
   node.append(...cardInnards(card));
-  node.setAttribute('aria-label', describeCard(card));
+  node.setAttribute('aria-label', cardSpoken(card));
   return node;
 }
 
-function describeCard(card: Card): string {
-  const names: Record<Suit, string> = { C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' };
-  const rank = rankOf(card);
-  const rankName =
-    rank === 14 ? 'ace' : rank === 13 ? 'king' : rank === 12 ? 'queen'
-    : rank === 11 ? 'jack' : rank === 10 ? 'ten' : String(rank);
-  return `${rankName} of ${names[suitOf(card)]}`;
-}
-
 function cardButton(card: Card, playable: boolean, onPlay: (card: Card) => void): HTMLElement {
-  const button = element('button', `card suit-${suitOf(card)}`);
+  const chosen = TOUCH && card === selectedCard;
+  const button = element('button', `card suit-${suitOf(card)}${chosen ? ' selected' : ''}`);
   button.type = 'button';
   button.disabled = !playable;
   button.append(...cardInnards(card));
-  button.setAttribute('aria-label', describeCard(card));
-  if (playable) button.addEventListener('click', () => onPlay(card));
+  button.setAttribute('aria-label',
+    chosen ? `${cardSpoken(card)} — nog een keer tikken om te spelen` : cardSpoken(card));
+  if (playable) {
+    button.addEventListener('click', () => {
+      if (!TOUCH) { onPlay(card); return; }
+      if (selectedCard === card) { selectedCard = null; onPlay(card); return; }
+      selectedCard = card;
+      render();
+    });
+  }
   return button;
 }
 
@@ -315,12 +336,12 @@ function nameplate(seat: Seat): HTMLElement {
 
   plate.append(element('span', undefined, SEAT_NAMES[seat]));
   if (seat === game.deal.dealer && game.phase === 'auction') {
-    plate.append(element('span', 'role', 'dealer'));
+    plate.append(element('span', 'role', 'gever'));
   }
   if (game.phase !== 'auction' && game.play) {
     const { declarer } = game.play.contract;
-    if (seat === declarer) plate.append(element('span', 'role', 'declarer'));
-    else if (seat === partnerOf(declarer)) plate.append(element('span', 'role', 'dummy'));
+    if (seat === declarer) plate.append(element('span', 'role', 'leider'));
+    else if (seat === partnerOf(declarer)) plate.append(element('span', 'role', 'blinde'));
   }
   return plate;
 }
@@ -339,9 +360,9 @@ function renderTrick(): HTMLElement {
 
   if (game.phase === 'auction') {
     const message = element('div', 'middle-message');
-    const heading = element('strong', undefined, 'The auction');
+    const heading = element('strong', undefined, 'Het bieden');
     message.append(heading, element('span', undefined,
-      waitingForHer(game) ? 'Your call.' : `Waiting for ${SEAT_NAMES[turnOf(game)!]}…`));
+      waitingForHer(game) ? 'Jij bent aan de beurt.' : `Wachten op ${SEAT_NAMES[turnOf(game)!]}…`));
     middle.append(message);
     return middle;
   }
@@ -367,8 +388,16 @@ function renderTrick(): HTMLElement {
   if (trick.cards.length === 0 && !pendingTrick) {
     const message = element('div', 'middle-message');
     message.append(element('span', undefined,
-      waitingForHer(game) ? 'Your lead.' : `${SEAT_NAMES[turnOf(game)!]} to lead…`));
+      waitingForHer(game) ? 'Jij komt uit.' : `${SEAT_NAMES[turnOf(game)!]} komt uit…`));
     middle.append(message);
+  }
+
+  // Says what the lifted card is waiting for, since nothing else on a tablet does.
+  if (selectedCard !== null) {
+    const confirm = element('div', 'tap-again');
+    confirm.append(element('span', undefined,
+      `${cardSpoken(selectedCard)} — tik er nog een keer op om hem te spelen`));
+    middle.append(confirm);
   }
   return middle;
 }
@@ -377,7 +406,7 @@ function renderCompleteMessage(): HTMLElement {
   const result = resultOf(session.game);
   const message = element('div', 'middle-message');
   if (!result || !result.contract || !result.breakdown) {
-    message.append(element('strong', undefined, 'Passed out'), element('span', undefined, 'Nobody bid. On to the next.'));
+    message.append(element('strong', undefined, 'Gepast'), element('span', undefined, 'Niemand bood. Door naar het volgende spel.'));
     return message;
   }
   const forUs = result.northSouthScore > 0;
@@ -387,8 +416,8 @@ function renderCompleteMessage(): HTMLElement {
     message.append(element('div', 'fanfare', headline));
   }
   message.append(
-    element('strong', undefined, contractToString(result.contract)),
-    element('span', undefined, `${describeResult(result.breakdown)} — ${result.tricksWon} tricks`),
+    element('strong', undefined, contractLabel(result.contract)),
+    element('span', undefined, `${describeOutcome(result.breakdown)} — ${tricks(result.tricksWon)}`),
   );
   return message;
 }
@@ -436,11 +465,6 @@ function renderAuctionTable(): HTMLElement {
   return table;
 }
 
-function callLabel(call: Call): string {
-  if (call.type !== 'bid') return callToString(call);
-  return call.strain === 'NT' ? `${call.level}NT` : `${call.level}${SUIT_SYMBOL[call.strain]}`;
-}
-
 function callClass(call: Call): string {
   if (call.type === 'bid') return `strain-${call.strain}`;
   return call.type === 'pass' ? '' : 'penalty';
@@ -458,21 +482,22 @@ function renderBiddingBox(): HTMLElement {
       const button = element('button', `bid strain-${strain}`, callLabel(call));
       button.type = 'button';
       button.disabled = !legal.has(callToString(call));
-      button.setAttribute('aria-label', `${level} ${strain === 'NT' ? 'no trumps' : strain}`);
+      button.setAttribute('aria-label', callSpoken(call));
       if (!button.disabled) button.addEventListener('click', () => onCall(call));
       grid.append(button);
     }
   }
 
   const row = element('div', 'bid-row');
-  const specials: Array<{ call: Call; label: string; className: string }> = [
-    { call: { type: 'pass' }, label: 'Pass', className: 'pass' },
-    { call: { type: 'double' }, label: 'Double', className: 'dbl' },
-    { call: { type: 'redouble' }, label: 'Redouble', className: 'rdbl' },
+  const specials: Array<{ call: Call; className: string }> = [
+    { call: { type: 'pass' }, className: 'pass' },
+    { call: { type: 'double' }, className: 'dbl' },
+    { call: { type: 'redouble' }, className: 'rdbl' },
   ];
-  for (const { call, label, className } of specials) {
-    const button = element('button', `bid ${className}`, label);
+  for (const { call, className } of specials) {
+    const button = element('button', `bid ${className}`, callLabel(call));
     button.type = 'button';
+    button.setAttribute('aria-label', callSpoken(call));
     button.disabled = !isLegalCall(auction, call);
     if (!button.disabled) button.addEventListener('click', () => onCall(call));
     row.append(button);
@@ -488,23 +513,23 @@ function renderResult(): HTMLElement {
   if (!result) return section;
 
   if (!result.contract || !result.breakdown) {
-    section.append(element('div', 'headline', 'Passed out'));
+    section.append(element('div', 'headline', 'Gepast'));
   } else {
     const { breakdown } = result;
     const headline = element('div', `headline ${breakdown.made ? 'made' : 'failed'}`,
-      `${contractToString(result.contract)} — ${describeResult(breakdown)}`);
+      `${contractLabel(result.contract)} — ${describeOutcome(breakdown)}`);
     section.append(headline);
 
     const table = element('table', 'breakdown');
     const rows: Array<[string, number]> = breakdown.made
       ? [
-          ['Trick points', breakdown.contractPoints],
-          ['Overtricks', breakdown.overtrickPoints],
-          [breakdown.gameBonus >= 300 ? 'Game bonus' : 'Part-score', breakdown.gameBonus],
-          ['Slam bonus', breakdown.slamBonus],
-          ['For the insult', breakdown.insultBonus],
+          ['Slagpunten', breakdown.contractPoints],
+          ['Overslagen', breakdown.overtrickPoints],
+          [breakdown.gameBonus >= 300 ? 'Manchebonus' : 'Deelscore', breakdown.gameBonus],
+          ['Slembonus', breakdown.slamBonus],
+          ['Voor het doublet', breakdown.insultBonus],
         ]
-      : [['Undertricks', -breakdown.penalty]];
+      : [['Down', -breakdown.penalty]];
     for (const [label, value] of rows) {
       if (value === 0) continue;
       const tr = element('tr');
@@ -513,14 +538,14 @@ function renderResult(): HTMLElement {
     }
     const totalRow = element('tr', 'total');
     totalRow.append(
-      element('td', undefined, `Score to ${sideOf(result.contract.declarer)}`),
+      element('td', undefined, `Voor ${sideOf(result.contract.declarer) === 'NS' ? 'N-Z' : 'O-W'}`),
       element('td', undefined, String(breakdown.score)),
     );
     table.append(totalRow);
     section.append(table);
   }
 
-  const next = element('button', 'action', 'Next deal');
+  const next = element('button', 'action', 'Volgend spel');
   next.type = 'button';
   next.addEventListener('click', nextHand);
   section.append(next);
@@ -533,9 +558,9 @@ function renderPanel(): HTMLElement {
 
   const header = element('section');
   header.append(
-    element('div', 'hand-number', `Hand ${session.handNumber}`),
+    element('div', 'hand-number', `Spel ${session.handNumber}`),
     element('div', 'deal-line',
-      `deal ${game.deal.id} · dealer ${game.deal.dealer} · vul ${game.deal.vulnerability.toLowerCase()}`),
+      `spel ${game.deal.id} · gever ${SEAT_COMPASS[game.deal.dealer]} · kwetsbaar ${VULNERABILITY[game.deal.vulnerability]}`),
   );
   panel.append(header);
 
@@ -544,23 +569,23 @@ function renderPanel(): HTMLElement {
     const status = element('section');
     status.append(
       element('h2', undefined, 'Contract'),
-      element('div', 'hand-number', contractToString(contract)),
+      element('div', 'hand-number', contractLabel(contract)),
       element('div', 'hint',
-        `${tricksRequired(contract)} tricks needed · ` +
-        `N-S ${game.play.tricksWon.NS} · E-W ${game.play.tricksWon.EW}`),
+        `${tricksRequired(contract)} slagen nodig · ` +
+        `N-Z ${game.play.tricksWon.NS} · O-W ${game.play.tricksWon.EW}`),
     );
     if (humanSeats(game).length === 0) {
       status.append(element('div', 'hint',
-        'You are dummy this hand — your partner plays your cards. Sit back and watch.'));
+        'Jij bent deze hand de blinde — je partner speelt jouw kaarten. Achteroverleunen en kijken dus.'));
     } else if (humanSeats(game).length === 2) {
       status.append(element('div', 'hint',
-        'You are declarer, so you play dummy’s cards too.'));
+        'Jij bent leider, dus je speelt ook de kaarten van de blinde.'));
     }
     panel.append(status);
   }
 
   const auctionSection = element('section');
-  auctionSection.append(element('h2', undefined, 'Auction'), renderAuctionTable());
+  auctionSection.append(element('h2', undefined, 'Biedverloop'), renderAuctionTable());
   // The most recent bot call, in words. Hovering any call shows its own.
   const lastIndex = game.auction.calls.length - 1;
   const lastMeaning = session.meanings.get(lastIndex);
@@ -574,19 +599,19 @@ function renderPanel(): HTMLElement {
 
   if (game.phase === 'auction') {
     const bidding = element('section');
-    const heading = element('h2', undefined, waitingForHer(game) ? 'Your call' : 'Bidding');
+    const heading = element('h2', undefined, waitingForHer(game) ? 'Jouw bod' : 'Bieden');
     bidding.append(heading);
     if (waitingForHer(game)) bidding.append(renderBiddingBox());
-    else bidding.append(element('div', 'hint', `Waiting for ${SEAT_NAMES[turnOf(game)!]}…`));
+    else bidding.append(element('div', 'hint', `Wachten op ${SEAT_NAMES[turnOf(game)!]}…`));
     panel.append(bidding);
   }
 
   if (game.phase === 'complete') panel.append(renderResult());
 
   const tally = element('section');
-  tally.append(element('h2', undefined, 'Session'));
+  tally.append(element('h2', undefined, 'Deze avond'));
   const totals = element('div', 'tally');
-  for (const [label, value] of [['North-South', session.totals.NS], ['East-West', session.totals.EW]] as const) {
+  for (const [label, value] of [['Noord-Zuid', session.totals.NS], ['Oost-West', session.totals.EW]] as const) {
     const box = element('div');
     box.append(element('span', undefined, label), element('span', undefined, String(value)));
     totals.append(box);

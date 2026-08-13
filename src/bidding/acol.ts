@@ -92,7 +92,7 @@ const OPENING: Rule[] = [
     id: 'open-2C',
     situation: 'opening',
     tier: 'kitchen',
-    meaning: '23+ points, or about ten playing tricks. Artificial and forcing — it says nothing about clubs.',
+    meaning: '23+ punten, of ongeveer tien speelslagen. Conventioneel en forcing — het zegt niets over klaveren.',
     when: (ctx) => ctx.hcp >= 23 || (ctx.tricks >= 10 && ctx.hcp >= 19),
     call: (ctx) => exactly(ctx.auction, 2, 'C'),
   },
@@ -100,7 +100,7 @@ const OPENING: Rule[] = [
     id: 'open-2NT',
     situation: 'opening',
     tier: 'kitchen',
-    meaning: '20–22, balanced.',
+    meaning: '20–22, regelmatige verdeling.',
     when: (ctx) => ctx.balanced && ctx.hcp >= 20 && ctx.hcp <= 22,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
   },
@@ -108,7 +108,7 @@ const OPENING: Rule[] = [
     id: 'open-strong-two',
     situation: 'opening',
     tier: 'club',
-    meaning: 'A strong two: about eight playing tricks and a good suit. Forcing for one round.',
+    meaning: 'Een sterke twee: ongeveer acht speelslagen en een goede kleur. Eén ronde forcing.',
     when: (ctx) => ctx.tricks >= 8 && ctx.hcp >= 16 && ['D', 'H', 'S'].includes(bestSuit(ctx, 5) ?? ''),
     call: (ctx) => exactly(ctx.auction, 2, bestSuit(ctx, 5) as Strain),
   },
@@ -116,7 +116,7 @@ const OPENING: Rule[] = [
     id: 'open-preempt-four',
     situation: 'opening',
     tier: 'club',
-    meaning: 'Weak with an eight-card suit — bidding to get in the way.',
+    meaning: 'Zwak met een achtkaart — een bod om de tegenpartij dwars te zitten.',
     when: (ctx) => ctx.hcp >= 5 && ctx.hcp <= 10 && (bestSuit(ctx, 8) !== null),
     call: (ctx) => exactly(ctx.auction, 4, bestSuit(ctx, 8) as Strain),
   },
@@ -124,7 +124,7 @@ const OPENING: Rule[] = [
     id: 'open-preempt-three',
     situation: 'opening',
     tier: 'club',
-    meaning: 'Weak with a seven-card suit — bidding to get in the way.',
+    meaning: 'Zwak met een zevenkaart — een bod om de tegenpartij dwars te zitten.',
     when: (ctx) => ctx.hcp >= 5 && ctx.hcp <= 10 && (bestSuit(ctx, 7) !== null),
     call: (ctx) => exactly(ctx.auction, 3, bestSuit(ctx, 7) as Strain),
   },
@@ -132,7 +132,7 @@ const OPENING: Rule[] = [
     id: 'open-1NT',
     situation: 'opening',
     tier: 'kitchen',
-    meaning: '12–14, balanced. The weak no-trump.',
+    meaning: '12–14, regelmatige verdeling. De zwakke SA.',
     when: (ctx) => ctx.balanced && ctx.hcp >= 12 && ctx.hcp <= 14,
     call: (ctx) => exactly(ctx.auction, 1, 'NT'),
   },
@@ -140,7 +140,7 @@ const OPENING: Rule[] = [
     id: 'open-one-of-a-suit',
     situation: 'opening',
     tier: 'kitchen',
-    meaning: '12–19. Four-card majors, so this can be a four-card suit.',
+    meaning: '12–19. Er worden vierkaarts hoge kleuren geboden, dus dit kan een vierkaart zijn.',
     when: (ctx) => ctx.hcp >= 12 || (ctx.hcp >= 11 && ruleOfTwenty(ctx.hand)),
     call: (ctx) => exactly(ctx.auction, 1, openingSuit(ctx.hand) as Strain),
   },
@@ -148,7 +148,7 @@ const OPENING: Rule[] = [
     id: 'open-pass',
     situation: 'opening',
     tier: 'kitchen',
-    meaning: 'Not enough to open.',
+    meaning: 'Te weinig om te openen.',
     when: () => true,
     call: () => PASS,
   },
@@ -168,7 +168,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-1NT-stayman',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Stayman: 11+ points, asking for a four-card major.',
+    meaning: 'Stayman: 11+ punten, vraagt naar een vierkaart hoge kleur.',
     when: (ctx) => partnerOpened('NT')(ctx) && ctx.hcp >= 11 && (ctx.suits.H >= 4 || ctx.suits.S >= 4),
     call: (ctx) => exactly(ctx.auction, 2, 'C'),
   },
@@ -176,7 +176,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-1NT-3NT',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '13–18 balanced. Enough for game opposite a weak no-trump.',
+    meaning: '13–18 met regelmatige verdeling. Tegenover een zwakke SA genoeg voor de manche.',
     when: (ctx) => partnerOpened('NT')(ctx) && ctx.hcp >= 13 && ctx.hcp <= 18,
     call: (ctx) => exactly(ctx.auction, 3, 'NT'),
   },
@@ -184,7 +184,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-1NT-2NT',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '11–12, inviting game. Opener carries on with a maximum.',
+    meaning: '11–12, nodigt uit voor de manche. Met een maximum gaat de openaar door.',
     when: (ctx) => partnerOpened('NT')(ctx) && ctx.hcp >= 11 && ctx.hcp <= 12,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
   },
@@ -192,7 +192,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-1NT-weak-takeout',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Weak with a long suit — to play. There are no transfers, so this is natural and final.',
+    meaning: 'Zwak met een lange kleur — om te spelen. Er worden geen transfers gespeeld, dus dit is natuurlijk en eindbod.',
     when: (ctx) =>
       partnerOpened('NT')(ctx) && ctx.hcp <= 10 &&
       ['D', 'H', 'S'].includes(bestSuit(ctx, 5) ?? ''),
@@ -202,7 +202,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-1NT-pass',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Not enough opposite 12–14 to look for game, and no suit worth escaping to.',
+    meaning: 'Tegenover 12–14 te weinig voor de manche, en geen kleur om naar uit te wijken.',
     when: (ctx) => partnerOpened('NT')(ctx),
     call: () => PASS,
   },
@@ -212,7 +212,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2C-negative',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Negative: fewer than eight points. Says nothing about diamonds.',
+    meaning: 'Negatief: minder dan acht punten. Zegt niets over ruiten.',
     when: (ctx) => partnerOpened('C', 2)(ctx) && ctx.hcp <= 7,
     call: (ctx) => exactly(ctx.auction, 2, 'D'),
   },
@@ -220,7 +220,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2C-positive-major',
     situation: 'response',
     tier: 'club',
-    meaning: 'Eight or more points with a five-card major.',
+    meaning: 'Acht punten of meer, met een vijfkaart hoge kleur.',
     when: (ctx) => partnerOpened('C', 2)(ctx) && ctx.hcp >= 8 && ['H', 'S'].includes(bestSuit(ctx, 5) ?? ''),
     call: (ctx) => exactly(ctx.auction, 2, bestSuit(ctx, 5) as Strain),
   },
@@ -228,7 +228,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2C-positive-balanced',
     situation: 'response',
     tier: 'club',
-    meaning: 'Eight or more points, balanced.',
+    meaning: 'Acht punten of meer, regelmatige verdeling.',
     when: (ctx) => partnerOpened('C', 2)(ctx) && ctx.hcp >= 8,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
   },
@@ -238,7 +238,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-strong-two-negative',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Negative: fewer than eight points.',
+    meaning: 'Negatief: minder dan acht punten.',
     when: (ctx) =>
       ctx.partnerOpening?.level === 2 && ['D', 'H', 'S'].includes(ctx.partnerOpening.strain) && ctx.hcp <= 7,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
@@ -247,7 +247,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-strong-two-raise',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Eight or more points with support.',
+    meaning: 'Acht punten of meer, met steun.',
     when: (ctx) =>
       ctx.partnerOpening?.level === 2 && ['D', 'H', 'S'].includes(ctx.partnerOpening.strain) &&
       ctx.hcp >= 8 && support(ctx, ctx.partnerOpening.strain) >= 3,
@@ -257,7 +257,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-strong-two-3NT',
     situation: 'response',
     tier: 'club',
-    meaning: 'Eight or more points without support.',
+    meaning: 'Acht punten of meer, zonder steun.',
     when: (ctx) =>
       ctx.partnerOpening?.level === 2 && ['D', 'H', 'S'].includes(ctx.partnerOpening.strain) && ctx.hcp >= 8,
     call: (ctx) => exactly(ctx.auction, 3, 'NT'),
@@ -268,7 +268,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2NT-stayman',
     situation: 'response',
     tier: 'club',
-    meaning: 'Stayman over 2NT, asking for a four-card major.',
+    meaning: 'Stayman op 2SA, vraagt naar een vierkaart hoge kleur.',
     when: (ctx) => partnerOpened('NT', 2)(ctx) && ctx.hcp >= 4 && (ctx.suits.H >= 4 || ctx.suits.S >= 4),
     call: (ctx) => exactly(ctx.auction, 3, 'C'),
   },
@@ -276,7 +276,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2NT-3NT',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Four or more points opposite 20–22 is enough for game.',
+    meaning: 'Vier punten of meer tegenover 20–22 is genoeg voor de manche.',
     when: (ctx) => partnerOpened('NT', 2)(ctx) && ctx.hcp >= 4,
     call: (ctx) => exactly(ctx.auction, 3, 'NT'),
   },
@@ -284,7 +284,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2NT-pass',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Nothing at all opposite 20–22.',
+    meaning: 'Helemaal niets tegenover 20–22.',
     when: (ctx) => partnerOpened('NT', 2)(ctx),
     call: () => PASS,
   },
@@ -294,7 +294,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-preempt-game',
     situation: 'response',
     tier: 'club',
-    meaning: 'Enough opposite a long weak suit to try for game.',
+    meaning: 'Genoeg tegenover een lange zwakke kleur om de manche te proberen.',
     when: (ctx) =>
       ctx.partnerOpening !== null && ctx.partnerOpening.level >= 3 &&
       ctx.partnerOpening.strain !== 'NT' &&
@@ -305,7 +305,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-preempt-pass',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Partner has already described a weak hand with a long suit. Leave it alone.',
+    meaning: 'Partner heeft al een zwakke hand met een lange kleur laten zien. Laat maar staan.',
     when: (ctx) => ctx.partnerOpening !== null && ctx.partnerOpening.level >= 3,
     call: () => PASS,
   },
@@ -315,7 +315,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-jump-shift',
     situation: 'response',
     tier: 'tournament',
-    meaning: '16+ with a good suit of its own. Forcing to game.',
+    meaning: '16+ met een eigen goede kleur. Manche-forcing.',
     when: (ctx) => partnerOpenedASuit(ctx) && ctx.points >= 16 && bestSuit(ctx, 5) !== null,
     call: (ctx) => {
       const suit = bestSuit(ctx, 5)!;
@@ -327,7 +327,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-major-jump-raise',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '10–12 with four-card support. Inviting game.',
+    meaning: '10–12 met vierkaarts steun. Nodigt uit voor de manche.',
     when: (ctx) =>
       partnerOpenedASuit(ctx) && isMajor(ctx.partnerOpening!.strain) &&
       support(ctx, ctx.partnerOpening!.strain) >= 4 && ctx.points >= 10 && ctx.points <= 12,
@@ -337,7 +337,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-major-game-raise',
     situation: 'response',
     tier: 'club',
-    meaning: '13+ with four-card support — straight to game.',
+    meaning: '13+ met vierkaarts steun — meteen naar de manche.',
     when: (ctx) =>
       partnerOpenedASuit(ctx) && isMajor(ctx.partnerOpening!.strain) &&
       support(ctx, ctx.partnerOpening!.strain) >= 4 && ctx.points >= 13,
@@ -347,7 +347,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-major-simple-raise',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '6–9 with support.',
+    meaning: '6–9 met steun.',
     when: (ctx) =>
       partnerOpenedASuit(ctx) && isMajor(ctx.partnerOpening!.strain) &&
       support(ctx, ctx.partnerOpening!.strain) >= 3 && ctx.points >= 6 && ctx.points <= 9,
@@ -357,7 +357,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-new-suit-one-level',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '6+ points and at least four cards. Bid up the line at the one level.',
+    meaning: '6+ punten en minstens vier kaarten. Op eenniveau de laagste kleur eerst.',
     when: (ctx) =>
       partnerOpenedASuit(ctx) && ctx.points >= 6 &&
       biddableUpTheLine(ctx).some((suit) => exactly(ctx.auction, 1, suit) !== null),
@@ -370,7 +370,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-3NT',
     situation: 'response',
     tier: 'club',
-    meaning: '13–15 balanced, no fit to look for.',
+    meaning: '13–15 met regelmatige verdeling, geen fit om naar te zoeken.',
     when: (ctx) => partnerOpenedASuit(ctx) && ctx.balanced && ctx.points >= 13 && ctx.points <= 15,
     call: (ctx) => exactly(ctx.auction, 3, 'NT'),
   },
@@ -378,7 +378,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-2NT',
     situation: 'response',
     tier: 'club',
-    meaning: '11–12 balanced, inviting game.',
+    meaning: '11–12 met regelmatige verdeling, nodigt uit voor de manche.',
     when: (ctx) => partnerOpenedASuit(ctx) && ctx.balanced && ctx.points >= 11 && ctx.points <= 12,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
   },
@@ -386,7 +386,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-new-suit-two-level',
     situation: 'response',
     tier: 'club',
-    meaning: '9+ points and a five-card suit, bid at the two level.',
+    meaning: '9+ punten en een vijfkaart, geboden op tweeniveau.',
     when: (ctx) => partnerOpenedASuit(ctx) && ctx.points >= 9 && bestSuit(ctx, 5) !== null,
     call: (ctx) => {
       const suit = bestSuit(ctx, 5)!;
@@ -397,7 +397,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-minor-raise',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '6–9 with four-card support for the minor.',
+    meaning: '6–9 met vierkaarts steun voor de lage kleur.',
     when: (ctx) =>
       partnerOpenedASuit(ctx) && !isMajor(ctx.partnerOpening!.strain) &&
       support(ctx, ctx.partnerOpening!.strain) >= 4 && ctx.points >= 6 && ctx.points <= 9,
@@ -407,7 +407,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-1NT',
     situation: 'response',
     tier: 'kitchen',
-    meaning: '6–9, nothing better to say.',
+    meaning: '6–9, niets beters te melden.',
     when: (ctx) => partnerOpenedASuit(ctx) && ctx.points >= 6 && ctx.points <= 9,
     call: (ctx) => exactly(ctx.auction, 1, 'NT'),
   },
@@ -415,7 +415,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-pass',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Too weak to keep the auction alive.',
+    meaning: 'Te zwak om het bieden gaande te houden.',
     when: (ctx) => ctx.points <= 5,
     call: () => PASS,
   },
@@ -430,7 +430,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-contested-suit',
     situation: 'response',
     tier: 'club',
-    meaning: 'Enough to come in over their overcall, with a suit of our own.',
+    meaning: 'Genoeg om over hun volgbod heen te bieden, met een eigen kleur.',
     when: (ctx) => {
       if (!ctx.contested || ctx.points < 10) return false;
       const suit = bestSuit(ctx, 5);
@@ -444,7 +444,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-contested-notrump',
     situation: 'response',
     tier: 'club',
-    meaning: 'Balanced with values, over their overcall.',
+    meaning: 'Regelmatige verdeling met waarden, over hun volgbod heen.',
     when: (ctx) => ctx.contested && ctx.balanced && ctx.points >= 10 && ctx.points <= 12,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
   },
@@ -452,7 +452,7 @@ const RESPONSES: Rule[] = [
     id: 'resp-contested-pass',
     situation: 'response',
     tier: 'kitchen',
-    meaning: 'Their overcall has taken our bid away. Passing is not weakness here.',
+    meaning: 'Hun volgbod heeft ons bod weggenomen. Passen is hier geen zwakte.',
     when: (ctx) => ctx.contested,
     call: () => PASS,
   },
@@ -474,7 +474,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-stayman-hearts',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Four hearts. (With both majors, hearts first.)',
+    meaning: 'Vier harten. (Met beide hoge kleuren eerst harten.)',
     when: (ctx) => weOpened('NT')(ctx) && partnerBid(ctx)?.strain === 'C' && partnerBid(ctx)?.level === 2 && ctx.suits.H >= 4,
     call: (ctx) => exactly(ctx.auction, 2, 'H'),
   },
@@ -482,7 +482,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-stayman-spades',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Four spades, but not four hearts.',
+    meaning: 'Vier schoppen, maar geen vier harten.',
     when: (ctx) => weOpened('NT')(ctx) && partnerBid(ctx)?.strain === 'C' && partnerBid(ctx)?.level === 2 && ctx.suits.S >= 4,
     call: (ctx) => exactly(ctx.auction, 2, 'S'),
   },
@@ -490,7 +490,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-stayman-denial',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'No four-card major. Says nothing about diamonds.',
+    meaning: 'Geen vierkaart hoge kleur. Zegt niets over ruiten.',
     when: (ctx) => weOpened('NT')(ctx) && partnerBid(ctx)?.strain === 'C' && partnerBid(ctx)?.level === 2,
     call: (ctx) => exactly(ctx.auction, 2, 'D'),
   },
@@ -498,7 +498,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-1NT-accept-invite',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Maximum for the weak no-trump, so game it is.',
+    meaning: 'Maximum voor de zwakke SA, dus op naar de manche.',
     when: (ctx) => weOpened('NT')(ctx) && partnerBid(ctx)?.strain === 'NT' && partnerBid(ctx)?.level === 2 && ctx.hcp >= 14,
     call: (ctx) => exactly(ctx.auction, 3, 'NT'),
   },
@@ -506,7 +506,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-1NT-decline-invite',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Minimum — declining the invitation.',
+    meaning: 'Minimum — de uitnodiging afgeslagen.',
     when: (ctx) => weOpened('NT')(ctx) && partnerBid(ctx)?.strain === 'NT' && partnerBid(ctx)?.level === 2,
     call: () => PASS,
   },
@@ -514,7 +514,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-1NT-pass-takeout',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Partner has chosen the contract. Leave it alone.',
+    meaning: 'Partner heeft het contract gekozen. Laat maar staan.',
     when: (ctx) => weOpened('NT')(ctx),
     call: () => PASS,
   },
@@ -524,7 +524,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-support-partner-major-game',
     situation: 'rebid',
     tier: 'club',
-    meaning: 'Four-card support and extra values — bidding game.',
+    meaning: 'Vierkaarts steun en extra waarden — op naar de manche.',
     when: (ctx) => {
       const reply = partnerBid(ctx);
       return !!reply && reply.strain !== 'NT' && isMajor(reply.strain) &&
@@ -536,7 +536,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-support-partner-major',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Four-card support for partner’s suit.',
+    meaning: 'Vierkaarts steun voor de kleur van partner.',
     when: (ctx) => {
       const reply = partnerBid(ctx);
       return !!reply && reply.strain !== 'NT' && isMajor(reply.strain) && support(ctx, reply.strain) >= 4;
@@ -547,7 +547,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-raise-our-suit-to-game',
     situation: 'rebid',
     tier: 'club',
-    meaning: 'Partner raised and we have plenty — bidding game.',
+    meaning: 'Partner heeft verhoogd en wij hebben ruim genoeg — op naar de manche.',
     when: (ctx) => {
       const reply = partnerBid(ctx);
       return !!reply && !!ctx.ourOpening && reply.strain === ctx.ourOpening.strain &&
@@ -559,7 +559,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-own-suit',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'A six-card suit, repeated.',
+    meaning: 'Een zeskaart, nog een keer geboden.',
     when: (ctx) => !!ctx.ourOpening && ctx.ourOpening.strain !== 'NT' && support(ctx, ctx.ourOpening.strain) >= 6,
     call: (ctx) => cheapest(ctx.auction, ctx.ourOpening!.strain),
   },
@@ -567,7 +567,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-notrump-strong',
     situation: 'rebid',
     tier: 'club',
-    meaning: '17–18 balanced. (12–14 would have opened 1NT.)',
+    meaning: '17–18 met regelmatige verdeling. (Met 12–14 was 1SA geopend.)',
     when: (ctx) => ctx.balanced && ctx.hcp >= 17 && ctx.hcp <= 18,
     call: (ctx) => exactly(ctx.auction, 2, 'NT'),
   },
@@ -575,7 +575,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-notrump-minimum',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: '15–16 balanced. (12–14 would have opened 1NT.)',
+    meaning: '15–16 met regelmatige verdeling. (Met 12–14 was 1SA geopend.)',
     when: (ctx) => ctx.balanced && ctx.hcp >= 15 && ctx.hcp <= 16,
     call: (ctx) => exactly(ctx.auction, 1, 'NT'),
   },
@@ -583,7 +583,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-second-suit',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'A second suit of four cards or more.',
+    meaning: 'Een tweede kleur van vier kaarten of meer.',
     when: (ctx) =>
       !!ctx.ourOpening &&
       biddableUpTheLine(ctx).some(
@@ -600,7 +600,7 @@ const REBIDS: Rule[] = [
     id: 'rebid-pass',
     situation: 'rebid',
     tier: 'kitchen',
-    meaning: 'Minimum, with nothing more to show.',
+    meaning: 'Minimum, niets meer te laten zien.',
     when: () => true,
     call: () => PASS,
   },
@@ -613,7 +613,7 @@ const COMPETITIVE: Rule[] = [
     id: 'overcall-1NT',
     situation: 'overcall',
     tier: 'club',
-    meaning: '15–18 balanced. Stronger than the opening 1NT, because we are bidding over information.',
+    meaning: '15–18 met regelmatige verdeling. Sterker dan de 1SA-opening, omdat we over informatie heen bieden.',
     when: (ctx) => ctx.balanced && ctx.hcp >= 15 && ctx.hcp <= 18 && exactly(ctx.auction, 1, 'NT') !== null,
     call: (ctx) => exactly(ctx.auction, 1, 'NT'),
   },
@@ -621,7 +621,7 @@ const COMPETITIVE: Rule[] = [
     id: 'overcall-takeout-double',
     situation: 'overcall',
     tier: 'tournament',
-    meaning: 'Opening values, short in their suit, support for the others. Asking partner to choose.',
+    meaning: 'Openingskracht, kort in hun kleur, steun voor de andere. Vraagt partner te kiezen.',
     when: (ctx) =>
       ctx.hcp >= 12 && ctx.theirSuit !== null &&
       ctx.suits[ctx.theirSuit] <= 2 &&
@@ -633,7 +633,7 @@ const COMPETITIVE: Rule[] = [
     id: 'overcall-suit',
     situation: 'overcall',
     tier: 'club',
-    meaning: 'A decent five-card suit and enough to be worth showing.',
+    meaning: 'Een behoorlijke vijfkaart en genoeg om te laten zien.',
     when: (ctx) => {
       const suit = decentSuit(ctx);
       if (!suit || ctx.hcp < 9 || ctx.hcp > 16) return false;
@@ -648,7 +648,7 @@ const COMPETITIVE: Rule[] = [
     id: 'advance-raise',
     situation: 'advance',
     tier: 'club',
-    meaning: '6+ points with support for partner’s overcall.',
+    meaning: '6+ punten met steun voor het volgbod van partner.',
     when: (ctx) =>
       ctx.partnerLastBid !== null && ctx.partnerLastBid.strain !== 'NT' &&
       support(ctx, ctx.partnerLastBid.strain) >= 3 && ctx.points >= 6 && ctx.points <= 11,
@@ -658,7 +658,7 @@ const COMPETITIVE: Rule[] = [
     id: 'advance-own-suit',
     situation: 'advance',
     tier: 'tournament',
-    meaning: 'A suit of our own worth showing.',
+    meaning: 'Een eigen kleur die het waard is om te laten zien.',
     when: (ctx) => ctx.points >= 9 && bestSuit(ctx, 5) !== null,
     call: (ctx) => {
       const call = cheapest(ctx.auction, bestSuit(ctx, 5)!);
@@ -669,7 +669,7 @@ const COMPETITIVE: Rule[] = [
     id: 'overcall-pass',
     situation: 'overcall',
     tier: 'kitchen',
-    meaning: 'Nothing worth coming in on.',
+    meaning: 'Niets om mee tussen te komen.',
     when: () => true,
     call: () => PASS,
   },
@@ -677,7 +677,7 @@ const COMPETITIVE: Rule[] = [
     id: 'advance-pass',
     situation: 'advance',
     tier: 'kitchen',
-    meaning: 'Nothing to add to partner’s overcall.',
+    meaning: 'Niets toe te voegen aan het volgbod van partner.',
     when: () => true,
     call: () => PASS,
   },
@@ -692,7 +692,7 @@ const COMPETITIVE: Rule[] = [
     id: 'later-pass',
     situation: 'later',
     tier: 'kitchen',
-    meaning: 'The auction is past what the system covers.',
+    meaning: 'Het bieden is voorbij wat het systeem afdekt.',
     when: () => true,
     call: () => PASS,
   },
