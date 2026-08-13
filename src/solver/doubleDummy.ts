@@ -24,7 +24,7 @@
  * exhaustive minimax that has none of the above.
  */
 
-import type { Suit } from '../cards.js';
+import type { Card, Suit } from '../cards.js';
 import { SUITS } from '../cards.js';
 import type { Strain } from '../auction.js';
 import type { Hands } from '../play.js';
@@ -50,6 +50,15 @@ export type SolveOptions = {
   useTranspositions?: boolean;
   /** Turn off equivalent-card collapsing. Also only for the tests. */
   collapseEquivalents?: boolean;
+  /**
+   * Cards already on the table for the current trick, in play order starting
+   * with `leader`. `hands` must not contain them.
+   *
+   * A bot has to choose at all four seats of a trick, not only on lead, so
+   * Monte Carlo needs to ask "what happens after this card" from halfway
+   * through. Without this the solver could only answer at trick boundaries.
+   */
+  played?: readonly Card[];
 };
 
 export type SolveResult = {
@@ -84,12 +93,25 @@ export function solve(
       totalCards++;
     }
   }
-  if (totalCards % 4 !== 0) throw new Error('the four hands must be the same length');
-  const perHand = totalCards / 4;
+  /*
+   * Mid-trick, the seats that have already played hold one card fewer, so the
+   * hands are legitimately uneven. What must still hold is that the cards in
+   * hand plus the cards on the table divide into whole tricks.
+   */
+  const played = options.played ?? [];
+  if (played.length > 3) throw new Error('a trick holds four cards');
+  const atTrickStart = totalCards + played.length;
+  if (atTrickStart % 4 !== 0) throw new Error('cards in hand plus cards played must make whole tricks');
+  const tricksLeft = atTrickStart / 4;
+
   for (let seat = 0; seat < 4; seat++) {
     let held = 0;
     for (let suit = 0; suit < 4; suit++) held += popCount(masks[seat * 4 + suit]!);
-    if (held !== perHand) throw new Error('the four hands must be the same length');
+    // Where this seat sits in the current trick: the first `played.length` of
+    // them have already contributed a card and so hold one fewer.
+    const position = (seat - seatIndex(leader) + 4) % 4;
+    const expected = position < played.length ? tricksLeft - 1 : tricksLeft;
+    if (held !== expected) throw new Error(`hand ${SEATS[seat]} has ${held} cards, expected ${expected}`);
   }
 
   const trumpIndex = trump === null ? -1 : SUITS.indexOf(trump);
@@ -331,17 +353,47 @@ export function solve(
    * hopeless — the tree barely prunes and the transposition table grows without
    * limit. A null window prunes hard, and four such searches settle the answer.
    */
-  const start = seatIndex(leader);
+  /*
+   * Seed the current trick when one is half played: put those cards on the
+   * table, work out who is winning it so far, and enter the search at the seat
+   * next to play rather than at a trick boundary.
+   */
+  let seedLedSuit = -1;
+  let seedSuit = -1;
+  let seedRank = -1;
+  let seedSeat = -1;
+  played.forEach((card, index) => {
+    const suit = Math.floor(card / 13);
+    const rank = card % 13;
+    onTable[suit] = onTable[suit]! | (1 << rank);
+    if (index === 0) seedLedSuit = suit;
+    const wins = seedSeat < 0 ||
+      (suit === seedSuit ? rank > seedRank : suit === trumpIndex && seedSuit !== trumpIndex);
+    if (wins) {
+      seedSuit = suit;
+      seedRank = rank;
+      seedSeat = (seatIndex(leader) + index) % 4;
+    }
+  });
+
+  const ask = (alpha: number, beta: number): number =>
+    played.length === 0
+      ? fromTrickStart(seatIndex(leader), alpha, beta, totalCards, 0)
+      : withinTrick(
+          (seatIndex(leader) + played.length) % 4, played.length,
+          seedLedSuit, seedSuit, seedRank, seedSeat,
+          alpha, beta, atTrickStart, 0,
+        );
+
   let lowest = 0;
-  let highest = perHand;
+  let highest = tricksLeft;
   while (lowest < highest) {
     const midpoint = Math.floor((lowest + highest + 1) / 2);
-    const value = fromTrickStart(start, midpoint - 1, midpoint, totalCards, 0);
-    if (value >= midpoint) lowest = midpoint;
+    if (ask(midpoint - 1, midpoint) >= midpoint) lowest = midpoint;
     else highest = midpoint - 1;
   }
 
-  return { northSouth: lowest, eastWest: perHand - lowest, nodes, hits, clears };
+  return { northSouth: lowest, eastWest: tricksLeft - lowest, nodes, hits, clears };
 }
 
 function popCount(bits: number): number {

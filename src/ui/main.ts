@@ -30,10 +30,11 @@ import type { Trick } from '../play.js';
 import { applyCall, applyPlay, chicagoDeal, newGame, resultOf, turnOf } from '../game.js';
 import type { Game } from '../game.js';
 import { mulberry32 } from '../random.js';
-import { heuristicPlay } from '../bots/heuristic.js';
+import { chooseCard } from '../bots/levels.js';
+import type { Tier } from '../bots/levels.js';
 import { decideCall } from '../bidding/index.js';
 import { registerServiceWorker, watchInstallability } from './install.js';
-import { loadSettings } from './settings.js';
+import { currentSettings, loadSettings } from './settings.js';
 import { SUIT_SYMBOL, element } from './dom.js';
 import {
   SEAT_COMPASS, SEAT_NAME as SEAT_NAMES, callLabel, callSpoken, cardRankLabel, cardSpoken,
@@ -171,6 +172,15 @@ function advance(): void {
   );
 }
 
+/**
+ * How well this seat plays. Her partner is set apart from the opponents, so he
+ * can be the one carrying her or the one she has to carry.
+ */
+function tierFor(seat: Seat): Tier {
+  const settings = currentSettings();
+  return seat === partnerOf(HUMAN) ? settings.partner : settings.opponents;
+}
+
 function botMove(): void {
   const { game } = session;
   if (game.phase === 'auction') {
@@ -180,9 +190,8 @@ function botMove(): void {
     session.game = applyCall(game, decision.call);
     advance();
   } else if (game.phase === 'play' && game.play) {
-    // Card play is the Kitchen table player. Bidding is still random until
-    // phase 4 puts the Acol rule table behind it.
-    commitCard(heuristicPlay(game.play));
+    const seat = turnOf(game)!;
+    commitCard(chooseCard(game.play, seat, tierFor(seat), session.rng));
   }
 }
 

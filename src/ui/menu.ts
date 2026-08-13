@@ -18,6 +18,8 @@ import {
   BRIGHTNESS_STEPS, canStepBrightness, currentSettings, stepBrightness, updateSettings,
 } from './settings.js';
 import type { DeckColours, PanelSide } from './settings.js';
+import { TIERS } from '../bots/levels.js';
+import type { Tier } from '../bots/levels.js';
 
 export type MenuHooks = {
   /** Re-render everything; the menu does not own the page. */
@@ -92,6 +94,54 @@ function sideChoice(refresh: () => void): HTMLElement {
     group.append(choice);
   }
   return group;
+}
+
+/** A row of mutually exclusive choices, with the current one pressed. */
+function choices<T extends string>(
+  label: string,
+  options: ReadonlyArray<{ value: T; label: string }>,
+  selected: T,
+  onPick: (value: T) => void,
+  attribute?: string,
+): HTMLElement {
+  const group = element('div', 'segmented');
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', label);
+  for (const option of options) {
+    const choice = element('button', undefined, option.label);
+    choice.type = 'button';
+    if (attribute) choice.dataset[attribute] = option.value;
+    choice.setAttribute('aria-pressed', String(selected === option.value));
+    choice.addEventListener('click', () => onPick(option.value));
+    group.append(choice);
+  }
+  return group;
+}
+
+const TIER_LABEL: Record<Tier, string> = {
+  kitchen: 'Huiskamer',
+  club: 'Clubavond',
+  tournament: 'Wedstrijd',
+};
+
+function levelSection(refresh: () => void): HTMLElement {
+  const section = element('section', 'menu-section');
+  section.append(element('h3', undefined, 'Sterkte'));
+
+  const tiers = TIERS.map((tier) => ({ value: tier, label: TIER_LABEL[tier] }));
+
+  section.append(element('div', 'setting-name', 'Tegenstanders'));
+  section.append(choices('Sterkte van de tegenstanders', tiers, currentSettings().opponents,
+    (opponents) => { if (updateSettings({ opponents })) refresh(); }));
+
+  section.append(element('div', 'setting-name', 'Je partner'));
+  section.append(choices('Sterkte van je partner', tiers, currentSettings().partner,
+    (partner) => { if (updateSettings({ partner })) refresh(); }));
+
+  section.append(element('p', 'hint',
+    'Op huiskamer spelen ze op gevoel. Op wedstrijd rekenen ze het eindspel helemaal uit — dan moet je scherp zijn. ' +
+    'Je partner staat apart, dus hij mag ook beter of juist zwakker zijn dan de tegenstanders.'));
+  return section;
 }
 
 function brightnessControl(refresh: () => void): HTMLElement {
@@ -221,12 +271,27 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
   const update = updateSection(hooks);
   if (update) panel.append(update);
 
+  panel.append(levelSection(hooks.refresh));
+
   const cards = element('section', 'menu-section');
   cards.append(element('h3', undefined, 'Kaarten'));
   cards.append(deckChoice(hooks.refresh));
   cards.append(element('p', 'hint',
     'Bij vier kleuren krijgen ruiten en klaveren een eigen kleur. Dat scheelt bij het uit elkaar houden van de kleuren in een waaier.'));
+  cards.append(choices('Hoe de kaarten zijn gedrukt', [
+    { value: 'klassiek' as const, label: 'Klassiek' },
+    { value: 'groot' as const, label: 'Grote cijfers' },
+  ], currentSettings().cardStyle, (cardStyle) => { if (updateSettings({ cardStyle })) hooks.refresh(); }));
   panel.append(cards);
+
+  const look = element('section', 'menu-section');
+  look.append(element('h3', undefined, 'Uiterlijk'));
+  look.append(choices('Kleurenschema', [
+    { value: 'groen' as const, label: 'Groen laken' },
+    { value: 'licht' as const, label: 'Licht' },
+  ], currentSettings().theme, (theme) => { if (updateSettings({ theme })) hooks.refresh(); }));
+  look.append(element('p', 'hint', 'Licht leest prettiger in een zonnige kamer.'));
+  panel.append(look);
 
   const layout = element('section', 'menu-section');
   layout.append(element('h3', undefined, 'Indeling'));

@@ -15,10 +15,16 @@
  * rather than a rewrite.
  */
 
+import { TIERS } from '../bots/levels.js';
+import type { Tier } from '../bots/levels.js';
+
 const STORAGE_KEY = 'bridge.settings';
 
 export type DeckColours = 'two' | 'four';
-export type Theme = 'felt';
+/** The table's colour scheme. */
+export type Theme = 'groen' | 'licht';
+/** How the cards themselves are drawn. */
+export type CardStyle = 'klassiek' | 'groot';
 /** Which side the bidding panel sits on; the menu takes the other. */
 export type PanelSide = 'left' | 'right';
 
@@ -31,11 +37,23 @@ export type Settings = {
   /** Index into BRIGHTNESS_STEPS. */
   readonly brightness: number;
   readonly theme: Theme;
+  readonly cardStyle: CardStyle;
   readonly panelSide: PanelSide;
+  /** How well the two opponents play. */
+  readonly opponents: Tier;
+  /** How well partner plays — set apart, so he can be better or worse. */
+  readonly partner: Tier;
 };
 
 const DEFAULTS: Settings = {
-  deck: 'four', brightness: DEFAULT_BRIGHTNESS, theme: 'felt', panelSide: 'right',
+  deck: 'four',
+  brightness: DEFAULT_BRIGHTNESS,
+  theme: 'groen',
+  cardStyle: 'klassiek',
+  panelSide: 'right',
+  // She asked for a challenge, so the strongest is the starting point.
+  opponents: 'tournament',
+  partner: 'tournament',
 };
 
 let current: Settings = DEFAULTS;
@@ -55,7 +73,15 @@ function sanitise(stored: Partial<Settings> | null): Settings {
       ? stored.brightness
       : DEFAULT_BRIGHTNESS;
   const panelSide: PanelSide = stored.panelSide === 'left' ? 'left' : 'right';
-  return { deck, brightness, theme: 'felt', panelSide };
+  const theme: Theme = stored.theme === 'licht' ? 'licht' : 'groen';
+  const cardStyle: CardStyle = stored.cardStyle === 'groot' ? 'groot' : 'klassiek';
+  const tier = (value: unknown): Tier =>
+    TIERS.includes(value as Tier) ? (value as Tier) : 'tournament';
+  return {
+    deck, brightness, theme, cardStyle, panelSide,
+    opponents: tier(stored.opponents),
+    partner: tier(stored.partner),
+  };
 }
 
 export function loadSettings(): Settings {
@@ -83,6 +109,7 @@ export function applySettings(settings: Settings = current): void {
   const root = document.documentElement;
   root.dataset.deck = settings.deck;
   root.dataset.theme = settings.theme;
+  root.dataset.cards = settings.cardStyle;
   root.dataset.panel = settings.panelSide;
   root.style.setProperty('--screen-brightness', String(BRIGHTNESS_STEPS[settings.brightness]));
 }
@@ -90,11 +117,7 @@ export function applySettings(settings: Settings = current): void {
 /** Merge, apply and persist. Returns true if anything actually changed. */
 export function updateSettings(patch: Partial<Settings>): boolean {
   const next = sanitise({ ...current, ...patch });
-  const same =
-    next.deck === current.deck &&
-    next.brightness === current.brightness &&
-    next.theme === current.theme &&
-    next.panelSide === current.panelSide;
+  const same = (Object.keys(next) as Array<keyof Settings>).every((key) => next[key] === current[key]);
   if (same) return false;
   current = next;
   applySettings();

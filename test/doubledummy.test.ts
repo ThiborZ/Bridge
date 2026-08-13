@@ -14,12 +14,12 @@
 
 import { describe, it, expect } from 'vitest';
 import type { Suit } from '../src/cards.js';
-import { cardsToString, shuffledDeck, sortHand } from '../src/cards.js';
+import { cardsToString, shuffledDeck, sortHand, suitOf } from '../src/cards.js';
 import type { Card } from '../src/cards.js';
 import { mulberry32 } from '../src/random.js';
 import type { Hands } from '../src/play.js';
 import type { Seat } from '../src/seats.js';
-import { SEATS } from '../src/seats.js';
+import { SEATS, nextSeat, seatIndex } from '../src/seats.js';
 import type { Strain } from '../src/auction.js';
 import { parsePBNHands } from '../src/pbn.js';
 import { optimumResultTable, solve, tricksForDeclarer } from '../src/solver/doubleDummy.js';
@@ -88,6 +88,80 @@ describe('against an independent exhaustive search', () => {
     // The reference is close to unusable at this size, so only a few deals.
     expect(compareAcross(4, 5, 5000)).toBe(4 * 20);
   }, 300_000);
+});
+
+/**
+ * Starting halfway through a trick has to give the same answers as starting at
+ * the beginning of one, or every Monte Carlo decision is built on sand.
+ *
+ * The identity: the value at a trick start is exactly what the player on lead
+ * can achieve by choosing among their legal cards, each branch evaluated from
+ * one card further in. If mid-trick entry is wrong — the wrong seat to move,
+ * the wrong card winning so far, the wrong trick count — this breaks.
+ */
+describe('solving from halfway through a trick', () => {
+  const play = (hands: Hands, seat: Seat, card: Card): Hands => ({
+    ...hands,
+    [seat]: hands[seat].filter((held) => held !== card),
+  });
+
+  it('agrees with solving from the start of the trick, at every position', () => {
+    const mismatches: string[] = [];
+    let checked = 0;
+
+    for (let n = 0; n < 25; n++) {
+      const hands = smallDeal(11_000 + n, 4);
+      for (const trump of TRUMPS) {
+        for (const leader of SEATS) {
+          const whole = solve(hands, leader, trump).northSouth;
+
+          // Walk the four seats of the trick, checking the identity each time.
+          let position: Card[] = [];
+          let remaining = hands;
+          // Three steps, not four: playing the fourth card completes the trick,
+          // and a completed trick is a new trick start rather than a mid-trick
+          // position. This covers entry with one, two and three cards down.
+          for (let step = 0; step < 3; step++) {
+            const seat = nextSeat(leader, step);
+            const led = position.length > 0 ? suitOf(position[0]!) : null;
+            const hand = remaining[seat];
+            const mustFollow = led !== null && hand.some((card) => suitOf(card) === led);
+            const legal = mustFollow ? hand.filter((card) => suitOf(card) === led) : [...hand];
+
+            const values = legal.map((card) =>
+              solve(play(remaining, seat, card), leader, trump, { played: [...position, card] }).northSouth);
+            const ours = seatIndex(seat) % 2 === 0;
+            const best = ours ? Math.max(...values) : Math.min(...values);
+
+            const expected = step === 0
+              ? whole
+              : solve(remaining, leader, trump, { played: position }).northSouth;
+            checked++;
+            if (best !== expected && mismatches.length < 5) {
+              mismatches.push(
+                `seed ${11_000 + n}, trumps ${trump ?? 'none'}, ${leader} leads, ` +
+                `${position.length} cards played: from here ${expected}, best next ${best}`);
+            }
+
+            // Carry on down the line the mover would actually choose.
+            const chosenIndex = values.indexOf(best);
+            const chosen = legal[chosenIndex]!;
+            position = [...position, chosen];
+            remaining = play(remaining, seat, chosen);
+          }
+        }
+      }
+    }
+
+    expect(mismatches).toEqual([]);
+    expect(checked).toBeGreaterThan(1000);
+  }, 120_000);
+
+  it('refuses hands that cannot make whole tricks', () => {
+    const hands = smallDeal(12_345, 3);
+    // Three cards on the table but nothing removed from the hands.
+    expect(() => solve(hands, 'N', null, { played: [0, 13, 26] })).toThrow();
+  });
 });
 
 describe('the optimisations do not change the answer', () => {

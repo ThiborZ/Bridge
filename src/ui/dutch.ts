@@ -63,9 +63,10 @@ const RANK_NAME: Record<string, string> = {
   A: 'aas', K: 'heer', Q: 'vrouw', J: 'boer', T: 'tien',
 };
 
+/** Kleur eerst, dan de kaart: "ruiten vrouw", niet "vrouw ruiten". */
 export function cardSpoken(card: Card): string {
   const character = RANK_CHARS[rankOf(card) - 2]!;
-  return `${RANK_NAME[character] ?? character} ${SUIT_NAME[suitOf(card)]}`;
+  return `${SUIT_NAME[suitOf(card)]} ${RANK_NAME[character] ?? character}`;
 }
 
 export function cardRankLabel(card: Card): string {

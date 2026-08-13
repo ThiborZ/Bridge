@@ -20,11 +20,6 @@ export const ROADMAP: readonly Item[] = [
       'Een totaal over een hele avond, en iets om te verslaan — je beste score, hoeveel contracten je op rij maakt, hoe vaak je de goede manche vindt.',
   },
   {
-    title: 'Drie sterktes tegenstander',
-    detail:
-      'Van huiskamer tot clubavond tot wedstrijd — en je partner apart in te stellen, zodat hij beter of juist zwakker is dan de tegenstanders.',
-  },
-  {
     title: 'Verdergaan waar je gebleven was',
     detail:
       'Er staat nergens een klok: je kunt het spel midden in een hand wegleggen en een uur later oppakken. Maar als de tablet de app uit het geheugen gooit, is die hand weg en begin je opnieuw. Dat onthouden lost dat op.',
@@ -44,8 +39,15 @@ export const ROADMAP: readonly Item[] = [
       'Blackwood voor slems, en doorbieden als de tegenpartij ertussen komt. Nu passen de computerspelers op plekken waar een mens dat niet zou doen.',
   },
   {
+    title: 'Drie sterktes',
+    detail:
+      'Huiskamer speelt op gevoel, wedstrijd rekent het hele eindspel uit. Je partner staat apart in te stellen, zodat hij beter of juist zwakker mag zijn dan de tegenstanders.',
+    done: true,
+  },
+  {
     title: 'Een ander uiterlijk',
-    detail: 'Een tweede kleurenschema, voor de afwisseling of om het rustiger te laten lezen.',
+    detail: 'Groen laken of licht, en klassieke kaarten of grote cijfers.',
+    done: true,
   },
   {
     title: 'De speeltafel',
