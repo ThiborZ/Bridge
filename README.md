@@ -27,6 +27,37 @@ npm run typecheck
 npm run build     # static output in dist/
 ```
 
+`window.bridge` in the console exposes `state()`, `describe()` and
+`preview('slam' | 'game' | 'partscore' | 'setback')` — the last one shows an
+end-of-hand effect without waiting to be dealt a slam.
+
+## Publishing it
+
+Push to `main`. The workflow typechecks, runs the whole suite, regenerates the
+icons and deploys to GitHub Pages; a failing test never reaches the tablet.
+
+There is no server. It is a static page, which is what lets it work with the
+wifi off — and why Fly, where the other project lives, would be the wrong home
+for it.
+
+**Getting it onto her iPad** is a manual step, once, on the device: open the page
+in **Safari**, tap Share, then "Add to Home Screen". No page can do this for
+itself — Safari has no install API, which is why the in-app button shows
+instructions there rather than installing. Android and desktop Chrome get a real
+install button.
+
+**Updating it.** She never has to do anything. The worker's URL carries the build
+id, so each deploy is a distinct worker with its own cache; the page is checked
+for a new version on every launch and whenever she returns to it. A new version
+is applied **between hands, never mid-deal** — reloading while she is looking at
+thirteen cards to fix a typo would be its own kind of bug. The version showing in
+the corner of the panel is how you tell what she is actually running.
+
+**Offline is tested, not hoped for.** The verification was to stop the server and
+reload: the game came back, thirteen cards and all, served entirely from the
+cache. iOS behaviour is expected rather than verified — there is no iPad on this
+machine.
+
 The fuzz test and the solver comparisons dominate the runtime (~60s). To iterate
 faster:
 
