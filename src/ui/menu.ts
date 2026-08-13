@@ -213,7 +213,9 @@ function installSection(refresh: () => void): HTMLElement {
   viaMessage.append(stepList([
     'Tik rechtsboven op de drie puntjes ⋯ of op “Openen in”.',
     'Kies “Open in Safari”.',
-    'Volg daar de drie stappen hierboven.',
+    // Named rather than "hierboven": the two blocks swap places depending on
+    // which one applies, so any up-or-down wording is wrong half the time.
+    'Volg daar de drie stappen onder “In Safari”.',
   ]));
 
   if (state.kind === 'open-in-safari') section.append(viaMessage, inSafari);
