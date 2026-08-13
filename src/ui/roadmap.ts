@@ -5,6 +5,9 @@
  * where anyone looks while playing, and because "what were we going to add?" is
  * a question that otherwise gets answered from memory. Keep it honest: an item
  * moves to `done` when it works, not when it is started.
+ *
+ * Order matters — the not-done items are shown in this order, so it doubles as
+ * the priority list.
  */
 
 export type Item = {
@@ -15,18 +18,48 @@ export type Item = {
 
 export const ROADMAP: readonly Item[] = [
   {
+    title: 'Een spel nog eens bekijken',
+    detail:
+      'Een hand achteraf slag voor slag naspelen, met alle vier de handen open. Zo zie je zelf waar de slagen zijn gebleven.',
+  },
+  {
+    title: 'Hoe goed speelde je het?',
+    detail:
+      'Na afloop zie je hoeveel slagen er met open kaarten te halen waren. Haalde je er net zoveel, dan staat er “optimaal gespeeld” — en dat is niet makkelijk.',
+  },
+  {
     title: 'Punten bijhouden',
     detail:
-      'Een totaal over een hele avond, en iets om te verslaan — je beste score, hoeveel contracten je op rij maakt, hoe vaak je de goede manche vindt.',
+      'Een totaal over een hele avond, en cijfers om op terug te kijken: hoeveel contracten je maakt, je beste resultaat, en hoe je het doet tegen elke sterkte.',
+  },
+  {
+    title: 'Nog een keer, zelfde kaarten',
+    detail:
+      'Dezelfde hand nog een keer spelen, nu je weet waar alles zit. De snelste manier om te zien of het anders had gekund.',
+  },
+  {
+    title: 'Uitdagingen',
+    detail:
+      'Kant-en-klare handen met een opdracht: maak 4♥, of zorg juist dat 3SA niet gemaakt wordt. Het spel rekent vooraf uit dat het kán, dus je krijgt nooit een onmogelijke opgave.',
+  },
+  {
+    title: 'Alleen bieden',
+    detail:
+      'Krijg een hand, doe je bod, en zie meteen wat het systeem gezegd zou hebben en waarom. Veel handen achter elkaar, zonder ze uit te spelen.',
+  },
+  {
+    title: 'Tegenstanders met karakter',
+    detail:
+      'Noord, oost en west krijgen een naam en een eigen stijl — de een komt overal tussen, de ander wacht netjes af. Altijd navolgbaar: geen willekeur, maar een speler die je leert kennen.',
+  },
+  {
+    title: 'Een hele robber',
+    detail:
+      'Naast het spel van vier gevers ook een echte robber, voor als je er eens goed voor gaat zitten.',
   },
   {
     title: 'Een kaart terugnemen',
     detail: 'Ongedaan maken, voor als er per ongeluk een kaart valt.',
-  },
-  {
-    title: 'Een spel nog eens bekijken',
-    detail:
-      'Een hand achteraf slag voor slag naspelen, met een hint over waar de slagen zijn gebleven.',
   },
   {
     title: 'Meer biedsysteem',

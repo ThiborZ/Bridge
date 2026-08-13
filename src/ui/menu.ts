@@ -144,18 +144,57 @@ function brightnessControl(refresh: () => void): HTMLElement {
   return row;
 }
 
+/**
+ * The backlog as a checklist, in two groups.
+ *
+ * A single list sorted done-last read as one long undifferentiated thing, and
+ * the finished half is the more reassuring half — it is the answer to "is this
+ * still being worked on?". Ticks make the two states legible at a glance
+ * without having to read every line.
+ *
+ * It is a list, not a control: the boxes are decoration and nothing here is
+ * tappable. She is not being asked to manage a backlog.
+ */
 function roadmapList(): HTMLElement {
-  const list = element('ul', 'roadmap');
-  const ordered = [...ROADMAP].sort((a, b) => Number(a.done ?? false) - Number(b.done ?? false));
-  for (const item of ordered) {
-    const entry = element('li', item.done ? 'done' : undefined);
-    entry.append(
-      element('span', 'roadmap-title', item.title),
-      element('span', 'roadmap-detail', item.detail),
-    );
-    list.append(entry);
+  const wrapper = element('div', 'roadmap-groups');
+
+  const groups: Array<{ heading: string; done: boolean }> = [
+    { heading: 'Nog te doen', done: false },
+    { heading: 'Al gedaan', done: true },
+  ];
+
+  for (const { heading, done } of groups) {
+    const items = ROADMAP.filter((item) => Boolean(item.done) === done);
+    if (items.length === 0) continue;
+
+    const group = element('div', 'roadmap-group');
+    group.append(element('h3', 'roadmap-heading', `${heading} · ${items.length}`));
+
+    const list = element('ul', `roadmap${done ? ' is-done' : ''}`);
+    for (const item of items) {
+      const entry = element('li', done ? 'done' : undefined);
+
+      const tick = element('span', 'roadmap-tick', done ? '✓' : '');
+      tick.setAttribute('aria-hidden', 'true');
+
+      const text = element('span', 'roadmap-text');
+      text.append(
+        element('span', 'roadmap-title', item.title),
+        element('span', 'roadmap-detail', item.detail),
+      );
+
+      entry.append(tick, text);
+      // The tick is decorative, so the state has to reach a screen reader some
+      // other way.
+      entry.setAttribute('aria-label', `${done ? 'Klaar' : 'Nog te doen'}: ${item.title}. ${item.detail}`);
+      list.append(entry);
+    }
+
+    group.append(list);
+    wrapper.append(group);
   }
-  return list;
+
+  return wrapper;
 }
 
 /**

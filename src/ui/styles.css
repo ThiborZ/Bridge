@@ -1012,7 +1012,19 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
   }
 }
 
-/* what's coming */
+/* what's coming — a checklist in two groups */
+.roadmap-groups { display: flex; flex-direction: column; gap: 20px; }
+.roadmap-group { display: flex; flex-direction: column; gap: 10px; }
+
+.roadmap-heading {
+  margin: 0;
+  font-size: 0.64rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
 .roadmap {
   list-style: none;
   margin: 0;
@@ -1023,21 +1035,33 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
 }
 .roadmap li {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-left: 20px;
-  position: relative;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
 }
-.roadmap li::before {
-  content: "○";
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: var(--brass);
-  font-size: 0.8rem;
-  line-height: 1.5;
+
+/* An empty box to tick, and a filled one once it is done. */
+.roadmap-tick {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  border-radius: 4px;
+  border: 1.5px solid var(--panel-line);
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: transparent;
 }
-.roadmap li.done::before { content: "✓"; color: var(--club-lit); }
+.roadmap li.done .roadmap-tick {
+  border-color: var(--club-lit);
+  background: var(--club-lit);
+  color: #0b1a14;
+}
+
+.roadmap-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
 .roadmap-title { font-size: 0.88rem; font-weight: 650; color: var(--text); }
 .roadmap li.done .roadmap-title { color: var(--text-soft); font-weight: 500; }
 .roadmap-detail { font-size: 0.8rem; color: var(--text-soft); line-height: 1.45; }
