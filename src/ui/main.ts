@@ -33,14 +33,11 @@ import { describeResult } from '../score.js';
 import { mulberry32 } from '../random.js';
 import { heuristicPlay } from '../bots/heuristic.js';
 import { decideCall } from '../bidding/index.js';
-import {
-  BUILD_ID, askToInstall, dismissInstall, installState, registerServiceWorker, watchInstallability,
-} from './install.js';
-import {
-  BRIGHTNESS_STEPS, canStepBrightness, currentSettings, loadSettings, stepBrightness, updateSettings,
-} from './settings.js';
-import type { DeckColours } from './settings.js';
-import { ROADMAP } from './roadmap.js';
+import { registerServiceWorker, watchInstallability } from './install.js';
+import { loadSettings } from './settings.js';
+import { SUIT_SYMBOL, element } from './dom.js';
+import { closeMenu, renderMenu } from './menu.js';
+import { hasSeenWelcome, markWelcomeSeen, renderWelcome } from './welcome.js';
 import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
 import type { Celebration } from './celebrate.js';
 
@@ -64,7 +61,6 @@ const CARD_DELAY = FAST ? 0 : 750;
 const TRICK_PAUSE = FAST ? 0 : Number(PARAMS.get('pause') ?? 1500);
 
 const SEAT_NAMES: Record<Seat, string> = { N: 'North', E: 'East', S: 'You', W: 'West' };
-const SUIT_SYMBOL: Record<Suit, string> = { C: '♣', D: '♦', H: '♥', S: '♠' };
 
 type Session = {
   handNumber: number;
@@ -229,15 +225,6 @@ function nextHand(): void {
 }
 
 /* ------------------------------------------------------------------- render */
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K, className?: string, text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
 
 /**
  * A card face: the index in the top-left corner, which is the part that stays
@@ -540,165 +527,6 @@ function renderResult(): HTMLElement {
   return section;
 }
 
-/**
- * Two-colour or four-colour cards. Each option shows the four pips in the
- * palette it would give you, because a sample of the thing decides this faster
- * than any wording of it.
- */
-function renderDeckChoice(): HTMLElement {
-  const section = element('section');
-  section.append(element('h2', undefined, 'Cards'));
-
-  const group = element('div', 'segmented');
-  group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', 'Card colours');
-
-  const options: Array<{ deck: DeckColours; label: string }> = [
-    { deck: 'two', label: 'Two colours' },
-    { deck: 'four', label: 'Four colours' },
-  ];
-
-  for (const { deck, label } of options) {
-    const button = element('button');
-    button.type = 'button';
-    button.dataset.deck = deck;
-    button.setAttribute('aria-pressed', String(currentSettings().deck === deck));
-
-    const pips = element('span', 'pips');
-    pips.setAttribute('aria-hidden', 'true');
-    for (const suit of ['S', 'H', 'D', 'C'] as const) {
-      pips.append(element('span', `pip-${suit}`, SUIT_SYMBOL[suit]));
-    }
-    button.append(pips, element('span', undefined, label));
-    button.addEventListener('click', () => chooseDeck(deck));
-    group.append(button);
-  }
-
-  section.append(group);
-  section.append(element('div', 'hint',
-    'Four colours gives diamonds and clubs their own colour, which makes the suits easier to tell apart in a fanned hand.'));
-  return section;
-}
-
-function chooseDeck(deck: DeckColours): void {
-  if (updateSettings({ deck })) render();
-}
-
-/**
- * The home-screen offer. Two mechanisms behind one button: a real install on
- * Android and desktop, and — because Safari has no install API — instructions on
- * an iPad. Nothing at all once it is already installed.
- */
-let showingIosSteps = false;
-let settingsOpen = false;
-let showingRoadmap = false;
-
-function renderSettings(): HTMLElement {
-  const section = element('section', 'settings');
-
-  const toggle = element('button', 'action quiet', settingsOpen ? 'Close settings' : 'Settings');
-  toggle.type = 'button';
-  toggle.setAttribute('aria-expanded', String(settingsOpen));
-  toggle.addEventListener('click', () => { settingsOpen = !settingsOpen; render(); });
-  section.append(toggle);
-  if (!settingsOpen) return section;
-
-  const brightness = element('div', 'setting');
-  brightness.append(element('div', 'setting-name', 'Brightness'));
-
-  const controls = element('div', 'stepper');
-  const down = element('button', 'step', '−');
-  down.type = 'button';
-  down.setAttribute('aria-label', 'Darker');
-  down.disabled = !canStepBrightness(-1);
-  down.addEventListener('click', () => { if (stepBrightness(-1)) render(); });
-
-  const level = currentSettings().brightness;
-  const gauge = element('div', 'gauge');
-  gauge.setAttribute('role', 'img');
-  gauge.setAttribute('aria-label', `Brightness ${level + 1} of ${BRIGHTNESS_STEPS.length}`);
-  for (let i = 0; i < BRIGHTNESS_STEPS.length; i++) {
-    gauge.append(element('span', i <= level ? 'pip on' : 'pip'));
-  }
-
-  const up = element('button', 'step', '+');
-  up.type = 'button';
-  up.setAttribute('aria-label', 'Brighter');
-  up.disabled = !canStepBrightness(1);
-  up.addEventListener('click', () => { if (stepBrightness(1)) render(); });
-
-  controls.append(down, gauge, up);
-  brightness.append(controls);
-  brightness.append(element('div', 'hint',
-    'This lightens or darkens the game. The tablet’s own brightness is in its Control Centre.'));
-  section.append(brightness);
-
-  const info = element('button', 'action quiet', showingRoadmap ? 'Hide what’s coming' : 'What’s coming');
-  info.type = 'button';
-  info.setAttribute('aria-expanded', String(showingRoadmap));
-  info.addEventListener('click', () => { showingRoadmap = !showingRoadmap; render(); });
-  section.append(info);
-
-  if (showingRoadmap) section.append(renderRoadmap());
-
-  return section;
-}
-
-/** What is still to come, and what already works. Planned items first. */
-function renderRoadmap(): HTMLElement {
-  const list = element('ul', 'roadmap');
-  const ordered = [...ROADMAP].sort((a, b) => Number(a.done ?? false) - Number(b.done ?? false));
-  for (const item of ordered) {
-    const entry = element('li', item.done ? 'done' : undefined);
-    entry.append(
-      element('span', 'roadmap-title', item.title),
-      element('span', 'roadmap-detail', item.detail),
-    );
-    list.append(entry);
-  }
-  return list;
-}
-
-function renderInstall(): HTMLElement | null {
-  const state = installState();
-  if (state.kind === 'installed' || state.kind === 'none') return null;
-
-  const section = element('section', 'install');
-  section.append(element('h2', undefined, 'Keep it handy'));
-
-  if (state.kind === 'prompt') {
-    section.append(element('div', 'hint', 'Put Bridge on your home screen so it opens like an app, and works without wifi.'));
-    const button = element('button', 'action', 'Add to home screen');
-    button.type = 'button';
-    button.addEventListener('click', () => { void askToInstall(); });
-    section.append(button);
-  } else {
-    const button = element('button', 'action', 'Add to home screen');
-    button.type = 'button';
-    button.addEventListener('click', () => { showingIosSteps = !showingIosSteps; render(); });
-    section.append(button);
-
-    if (showingIosSteps) {
-      const steps = element('ol', 'steps');
-      for (const text of [
-        'Tap the Share button — the square with an arrow coming out of it.',
-        'Scroll down the list and tap “Add to Home Screen”.',
-        'Tap “Add”. Bridge will be on the home screen like any other app.',
-      ]) {
-        steps.append(element('li', undefined, text));
-      }
-      section.append(steps);
-      section.append(element('div', 'hint', 'This has to be done in Safari — other browsers on iPad do not have the option.'));
-    }
-  }
-
-  const not = element('button', 'action quiet', 'Not now');
-  not.type = 'button';
-  not.addEventListener('click', dismissInstall);
-  section.append(not);
-  return section;
-}
-
 function renderPanel(): HTMLElement {
   const { game } = session;
   const panel = element('aside', 'panel');
@@ -738,8 +566,9 @@ function renderPanel(): HTMLElement {
   const lastMeaning = session.meanings.get(lastIndex);
   if (lastMeaning && game.phase === 'auction') {
     const seat = SEATS[(SEATS.indexOf(game.auction.dealer) + lastIndex) % 4]!;
+    // The suit symbol, matching the grid — "1S" in this font reads as "15".
     auctionSection.append(element('div', 'hint',
-      `${SEAT_NAMES[seat]}: ${callToString(game.auction.calls[lastIndex]!)} — ${lastMeaning}`));
+      `${SEAT_NAMES[seat]}: ${callLabel(game.auction.calls[lastIndex]!)} — ${lastMeaning}`));
   }
   panel.append(auctionSection);
 
@@ -754,8 +583,6 @@ function renderPanel(): HTMLElement {
 
   if (game.phase === 'complete') panel.append(renderResult());
 
-  panel.append(renderDeckChoice());
-
   const tally = element('section');
   tally.append(element('h2', undefined, 'Session'));
   const totals = element('div', 'tally');
@@ -767,20 +594,16 @@ function renderPanel(): HTMLElement {
   tally.append(totals);
   panel.append(tally);
 
-  panel.append(renderSettings());
-
-  const install = renderInstall();
-  if (install) panel.append(install);
-
-  if (updateWaiting) {
-    const notice = element('section', 'update-notice');
-    notice.append(element('div', 'hint', 'A new version is ready. It will be used for the next hand.'));
-    panel.append(notice);
-  }
-
-  panel.append(element('div', 'build-stamp', `version ${BUILD_ID}`));
-
   return panel;
+}
+
+/** Shown on the very first visit, and whenever asked for from the menu. */
+let showingWelcome = !hasSeenWelcome();
+
+function dismissWelcome(): void {
+  showingWelcome = false;
+  markWelcomeSeen();
+  render();
 }
 
 function render(): void {
@@ -792,7 +615,17 @@ function render(): void {
     renderSeat('E', 'east', true),
     renderSeat('S', 'south', false),
   );
-  app.replaceChildren(table, renderPanel());
+  // The menu lives over the table so it stays put whatever the panel is doing.
+  table.append(renderMenu({
+    refresh: render,
+    showHowToPlay: () => { showingWelcome = true; render(); },
+    updateWaiting,
+    applyUpdate: () => location.reload(),
+  }));
+
+  const children: HTMLElement[] = [table, renderPanel()];
+  if (showingWelcome) children.push(renderWelcome(dismissWelcome));
+  app.replaceChildren(...children);
 }
 
 /* ------------------------------------------------------------------ actions */
@@ -808,6 +641,16 @@ function onPlayCard(card: Card): void {
   if (!waitingForHer(session.game)) return;
   commitCard(card);
 }
+
+// Tapping the table, or Escape, closes the menu — the usual expectations.
+document.addEventListener('click', (event) => {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest('.menu')) return;
+  if (closeMenu()) render();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && closeMenu()) render();
+});
 
 watchInstallability(render);
 registerServiceWorker(() => {

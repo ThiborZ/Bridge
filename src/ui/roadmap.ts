@@ -25,6 +25,11 @@ export const ROADMAP: readonly Item[] = [
       'Kitchen table, Club night and Tournament — and your partner set separately, so he can be better or worse than the opposition.',
   },
   {
+    title: 'Picking up where you left off',
+    detail:
+      'There is no clock on anything — put it down mid-hand and come back whenever you like. But if the tablet closes the app to save memory, the hand is lost and you start a fresh one. Remembering it would fix that.',
+  },
+  {
     title: 'Taking a card back',
     detail: 'An undo, for when a card goes down by accident.',
   },

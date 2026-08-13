@@ -19,6 +19,8 @@ const STORAGE_KEY = 'bridge.settings';
 
 export type DeckColours = 'two' | 'four';
 export type Theme = 'felt';
+/** Which side the bidding panel sits on; the menu takes the other. */
+export type PanelSide = 'left' | 'right';
 
 /** Coarse steps with a clear gauge beat a slider she has to aim at. */
 export const BRIGHTNESS_STEPS = [0.55, 0.7, 0.85, 1, 1.15, 1.3] as const;
@@ -29,9 +31,12 @@ export type Settings = {
   /** Index into BRIGHTNESS_STEPS. */
   readonly brightness: number;
   readonly theme: Theme;
+  readonly panelSide: PanelSide;
 };
 
-const DEFAULTS: Settings = { deck: 'four', brightness: DEFAULT_BRIGHTNESS, theme: 'felt' };
+const DEFAULTS: Settings = {
+  deck: 'four', brightness: DEFAULT_BRIGHTNESS, theme: 'felt', panelSide: 'right',
+};
 
 let current: Settings = DEFAULTS;
 
@@ -49,7 +54,8 @@ function sanitise(stored: Partial<Settings> | null): Settings {
     stored.brightness < BRIGHTNESS_STEPS.length
       ? stored.brightness
       : DEFAULT_BRIGHTNESS;
-  return { deck, brightness, theme: 'felt' };
+  const panelSide: PanelSide = stored.panelSide === 'left' ? 'left' : 'right';
+  return { deck, brightness, theme: 'felt', panelSide };
 }
 
 export function loadSettings(): Settings {
@@ -77,15 +83,19 @@ export function applySettings(settings: Settings = current): void {
   const root = document.documentElement;
   root.dataset.deck = settings.deck;
   root.dataset.theme = settings.theme;
+  root.dataset.panel = settings.panelSide;
   root.style.setProperty('--screen-brightness', String(BRIGHTNESS_STEPS[settings.brightness]));
 }
 
 /** Merge, apply and persist. Returns true if anything actually changed. */
 export function updateSettings(patch: Partial<Settings>): boolean {
   const next = sanitise({ ...current, ...patch });
-  if (next.deck === current.deck && next.brightness === current.brightness && next.theme === current.theme) {
-    return false;
-  }
+  const same =
+    next.deck === current.deck &&
+    next.brightness === current.brightness &&
+    next.theme === current.theme &&
+    next.panelSide === current.panelSide;
+  if (same) return false;
   current = next;
   applySettings();
   save();
