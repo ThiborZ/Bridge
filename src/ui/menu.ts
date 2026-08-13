@@ -25,6 +25,8 @@ export type MenuHooks = {
   /** Re-render everything; the menu does not own the page. */
   readonly refresh: () => void;
   readonly showHowToPlay: () => void;
+  readonly onNewGame: () => void;
+  readonly onHome: () => void;
   /** True when a newer version has been fetched and is waiting. */
   readonly updateWaiting: boolean;
   readonly applyUpdate: () => void;
@@ -263,10 +265,20 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
 
   const panel = element('div', 'menu-panel');
 
-  panel.append(button('action quiet wide', 'Hoe werkt het?', () => {
+  const top = element('section', 'menu-section');
+  top.append(button('action wide', 'Nieuw spel', () => {
+    closeMenu();
+    hooks.onNewGame();
+  }));
+  top.append(button('action quiet wide', 'Naar het beginscherm', () => {
+    closeMenu();
+    hooks.onHome();
+  }));
+  top.append(button('action quiet wide', 'Hoe werkt het?', () => {
     closeMenu();
     hooks.showHowToPlay();
   }));
+  panel.append(top);
 
   const update = updateSection(hooks);
   if (update) panel.append(update);

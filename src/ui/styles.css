@@ -853,22 +853,58 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
 
 /* ------------------------------------------------------------ start screen */
 
+/*
+ * The overlay scrolls; the card inside it does not.
+ *
+ * Centring a card that is taller than the screen overflows in *both*
+ * directions, and the half above the top edge cannot be scrolled to — which on
+ * a phone left the start screen as a stranded strip with its heading and its
+ * button both out of reach. Aligning to the top and letting the overlay scroll
+ * is the fix.
+ */
 .welcome {
   position: fixed;
   inset: 0;
+  /*
+   * Not `inset: 0` alone: a fixed element sizes to the *layout* viewport, which
+   * on a phone runs underneath the browser's own bars. In an in-app browser —
+   * a link opened from Messenger, say — that is a big strip, and the bottom of
+   * this card was hidden behind it with the button unreachable. `dvh` is the
+   * viewport actually visible right now.
+   */
+  height: 100dvh;
   z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(12px, 4vw, 40px) 16px 0;
   background: rgba(6, 12, 10, 0.82);
   backdrop-filter: blur(4px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * A real element rather than bottom padding: a scrolling flex container does
+ * not include its own padding-bottom in the scrollable area, which left the
+ * last button a few pixels out of reach at the end of the scroll.
+ */
+.welcome::after {
+  content: "";
+  display: block;
+  flex: none;
+  height: clamp(12px, 4vw, 40px);
 }
 
 .welcome-card {
   width: min(560px, 100%);
-  max-height: calc(100dvh - 40px);
-  overflow-y: auto;
+  flex: none;
+  /*
+   * No auto margins and no centring. Both overflow unreachably when the card is
+   * taller than the screen — auto margins do exactly what `place-items: center`
+   * did, and the button at the bottom cannot be scrolled to. Top-aligned is
+   * predictable at every size, and this card is taller than a phone anyway.
+   */
   background: var(--panel);
   border: 1px solid var(--panel-line);
   border-radius: 14px;
@@ -896,6 +932,11 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
   gap: 14px;
 }
 .welcome-points li { display: flex; flex-direction: column; gap: 3px; }
+
+/* the opening screen */
+.home-setting { margin: 0; color: var(--text-soft); font-size: 0.88rem; line-height: 1.55; }
+.home-actions { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+.home .welcome-card { gap: 14px; }
 .welcome-heading { font-weight: 650; font-size: 0.95rem; }
 .welcome-body { color: var(--text-soft); font-size: 0.9rem; line-height: 1.55; }
 
@@ -1064,6 +1105,37 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
  * columns as fit, because stacked in one strip they leave the page taller than
  * the screen and push the table off the top.
  */
+/*
+ * On a phone the menu is a full-screen sheet, not a dropdown.
+ *
+ * Anchored under its button it inherited the table's height, which on a short
+ * screen is a couple of hundred pixels — so every setting lived inside a tiny
+ * scrolling box on top of the cards. A sheet has room and does not fight the
+ * table for space.
+ */
+@media (max-width: 700px) {
+  .menu { position: static; max-height: none; }
+  .menu-button { position: absolute; top: 12px; left: 12px; z-index: 30; }
+  :root[data-panel="left"] .menu-button { left: auto; right: 12px; }
+
+  .menu-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    max-height: none;
+    height: 100dvh;
+    border: none;
+    border-radius: 0;
+    padding: 68px 18px 28px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--panel);
+  }
+  /* The button rides above the open sheet so it can be closed again. */
+  .menu-button[aria-expanded="true"] { position: fixed; z-index: 50; }
+}
+
 @media (max-width: 900px) {
   #app { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
   .table { min-height: 54vh; min-height: 54dvh; }

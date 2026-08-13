@@ -41,7 +41,8 @@ import {
   contractLabel, describeOutcome, tricks, VULNERABILITY,
 } from './dutch.js';
 import { closeMenu, renderMenu } from './menu.js';
-import { hasSeenWelcome, markWelcomeSeen, renderWelcome } from './welcome.js';
+import { markWelcomeSeen, renderWelcome } from './welcome.js';
+import { renderHome } from './home.js';
 import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
 import type { Celebration } from './celebrate.js';
 
@@ -163,6 +164,7 @@ function advance(): void {
   // A card lifted for a second tap must not survive into somebody else's turn.
   selectedCard = null;
   render();
+  if (screen !== 'game') return;    // nobody plays while the home screen is up
   if (session.pendingTrick) return; // the pause timer owns what happens next
   const turn = turnOf(session.game);
   if (turn === null || waitingForHer(session.game)) return;
@@ -631,13 +633,43 @@ function renderPanel(): HTMLElement {
   return panel;
 }
 
-/** Shown on the very first visit, and whenever asked for from the menu. */
-let showingWelcome = !hasSeenWelcome();
+/**
+ * What is on screen. It opens on `home` and waits to be told to start, rather
+ * than dealing the moment it loads.
+ */
+let screen: 'home' | 'game' = 'home';
+/** True once a game has been started, so home can offer to resume it. */
+let gameUnderWay = false;
+let showingWelcome = false;
 
 function dismissWelcome(): void {
   showingWelcome = false;
   markWelcomeSeen();
   render();
+}
+
+function startNewGame(): void {
+  window.clearTimeout(botTimer);
+  window.clearTimeout(pauseTimer);
+  clearCelebration();
+  session = newSession();
+  screen = 'game';
+  gameUnderWay = true;
+  advance();
+}
+
+function goHome(): void {
+  window.clearTimeout(botTimer);
+  screen = 'home';
+  render();
+}
+
+function renderHomeScreen(): HTMLElement {
+  return renderHome({
+    onNewGame: startNewGame,
+    onHowToPlay: () => { showingWelcome = true; render(); },
+    onResume: gameUnderWay ? () => { screen = 'game'; advance(); } : undefined,
+  });
 }
 
 function render(): void {
@@ -653,11 +685,14 @@ function render(): void {
   table.append(renderMenu({
     refresh: render,
     showHowToPlay: () => { showingWelcome = true; render(); },
+    onNewGame: startNewGame,
+    onHome: goHome,
     updateWaiting,
     applyUpdate: () => location.reload(),
   }));
 
   const children: HTMLElement[] = [table, renderPanel()];
+  if (screen === 'home') children.push(renderHomeScreen());
   if (showingWelcome) children.push(renderWelcome(dismissWelcome));
   app.replaceChildren(...children);
 }
