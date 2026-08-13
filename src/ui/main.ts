@@ -41,6 +41,8 @@ import {
 } from './settings.js';
 import type { DeckColours } from './settings.js';
 import { ROADMAP } from './roadmap.js';
+import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
+import type { Celebration } from './celebrate.js';
 
 const HUMAN: Seat = 'S';
 
@@ -76,6 +78,8 @@ type Session = {
    * bad one.
    */
   meanings: Map<number, string>;
+  /** How the hand just finished, for the effect and the headline. */
+  celebration: Celebration;
   rng: () => number;
 };
 
@@ -100,6 +104,7 @@ function newSession(): Session {
     totals: { NS: 0, EW: 0 },
     pendingTrick: null,
     meanings: new Map(),
+    celebration: 'none',
     rng,
   };
 }
@@ -191,6 +196,10 @@ function finishHandIfOver(): void {
   if (!result) return;
   session.totals.NS += result.northSouthScore;
   session.totals.EW -= result.northSouthScore;
+
+  // Scaled to what her side won, which is why beating their contract counts too.
+  session.celebration = celebrationFor(result.northSouthScore, result.contract?.level ?? 0);
+  celebrate(session.celebration);
 }
 
 /**
@@ -214,6 +223,8 @@ function nextHand(): void {
   session.game = newGame(chicagoDeal(freshDealId(), handNumber));
   session.pendingTrick = null;
   session.meanings.clear();
+  session.celebration = 'none';
+  clearCelebration();
   advance();
 }
 
@@ -381,6 +392,12 @@ function renderCompleteMessage(): HTMLElement {
   if (!result || !result.contract || !result.breakdown) {
     message.append(element('strong', undefined, 'Passed out'), element('span', undefined, 'Nobody bid. On to the next.'));
     return message;
+  }
+  const forUs = result.northSouthScore > 0;
+  const headline = headlineFor(session.celebration, forUs);
+  if (headline) {
+    message.classList.add(`outcome-${session.celebration}`);
+    message.append(element('div', 'fanfare', headline));
   }
   message.append(
     element('strong', undefined, contractToString(result.contract)),
@@ -804,7 +821,8 @@ registerServiceWorker(() => {
 });
 advance();
 
-// Exposed so the browser console can drive a hand without clicking through it.
+// Exposed so the browser console can drive a hand without clicking through it,
+// and preview an end-of-hand effect without waiting to be dealt a slam.
 Object.assign(window as unknown as Record<string, unknown>, {
   bridge: {
     state: () => session,
@@ -814,5 +832,12 @@ Object.assign(window as unknown as Record<string, unknown>, {
       hers: waitingForHer(session.game),
       hand: sortHand(session.game.deal.hands.S).map(cardToString).join(' '),
     }),
+    preview: (tier: Celebration) => {
+      session.celebration = tier;
+      clearCelebration();
+      celebrate(tier);
+      render();
+      return tier;
+    },
   },
 });
