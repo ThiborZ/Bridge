@@ -20,11 +20,6 @@ export const ROADMAP: readonly Item[] = [
       'Een totaal over een hele avond, en iets om te verslaan — je beste score, hoeveel contracten je op rij maakt, hoe vaak je de goede manche vindt.',
   },
   {
-    title: 'Verdergaan waar je gebleven was',
-    detail:
-      'Er staat nergens een klok: je kunt het spel midden in een hand wegleggen en een uur later oppakken. Maar als de tablet de app uit het geheugen gooit, is die hand weg en begin je opnieuw. Dat onthouden lost dat op.',
-  },
-  {
     title: 'Een kaart terugnemen',
     detail: 'Ongedaan maken, voor als er per ongeluk een kaart valt.',
   },
@@ -64,6 +59,12 @@ export const ROADMAP: readonly Item[] = [
     title: 'Acol bieden',
     detail:
       'Zwakke SA, sterke tweeën, Stayman zonder transfers. Elk bod legt zichzelf uit — houd je vinger op een bod in het biedverloop.',
+    done: true,
+  },
+  {
+    title: 'Verdergaan waar je gebleven was',
+    detail:
+      'Er staat nergens een klok. Leg het spel midden in een hand weg en pak het een uur later weer op — ook als de tablet de app ondertussen heeft afgesloten. Je komt terug bij precies dezelfde kaarten.',
     done: true,
   },
   {

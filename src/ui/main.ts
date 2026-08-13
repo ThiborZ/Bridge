@@ -44,6 +44,7 @@ import { closeMenu, renderMenu } from './menu.js';
 import { markWelcomeSeen, renderWelcome } from './welcome.js';
 import { HANDS_PER_GAME, renderFinished, renderSetup } from './screens.js';
 import type { Strengths } from './screens.js';
+import { clearSavedGame, loadGame, saveGame } from './saved.js';
 import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
 import type { Celebration } from './celebrate.js';
 
@@ -187,10 +188,21 @@ function exposedDummy(game: Game): Seat | null {
   return played ? partnerOf(game.play.contract.declarer) : null;
 }
 
+/**
+ * Written after every change, so the tablet dropping the app from memory costs
+ * nothing. It is a few hundred bytes — the deal's seed plus the calls and cards
+ * — so there is no reason to be clever about when.
+ */
+function remember(): void {
+  if (screen !== 'playing') return;
+  saveGame(session.game, session.handNumber, session.totals, gameStrengths, session.meanings);
+}
+
 function advance(): void {
   window.clearTimeout(botTimer);
   // A card lifted for a second tap must not survive into somebody else's turn.
   selectedCard = null;
+  remember();
   render();
   if (screen !== 'playing') return; // nobody plays at an empty or finished table
   if (session.pendingTrick) return; // the pause timer owns what happens next
@@ -232,6 +244,10 @@ function commitCard(card: Card): void {
   const before = session.game.play?.completed.length ?? 0;
   session.game = applyPlay(session.game, card);
   const after = session.game.play?.completed.length ?? 0;
+  // Written here rather than only in `advance`: the card that completes a trick
+  // goes on to wait out the pause, and a save taken after that pause would be
+  // one card behind what she can see on the table.
+  remember();
 
   if (after > before) {
     session.pendingTrick = session.game.play!.completed[after - 1]!;
@@ -278,6 +294,7 @@ function nextHand(): void {
     window.clearTimeout(botTimer);
     window.clearTimeout(pauseTimer);
     clearCelebration();
+    clearSavedGame(); // the game is over; there is nothing to come back to
     screen = 'finished';
     render();
     return;
@@ -714,9 +731,34 @@ function clearTable(): void {
   window.clearTimeout(botTimer);
   window.clearTimeout(pauseTimer);
   clearCelebration();
+  clearSavedGame();
   session = newSession();
   screen = 'empty';
   render();
+}
+
+/**
+ * Pick up where she left off. Only a game that was actually in progress is
+ * restored — a finished or unstarted one has nothing worth coming back to.
+ */
+function restoreSavedGame(): boolean {
+  const saved = loadGame();
+  if (saved === null) return false;
+  if (saved.game.phase === 'complete' && saved.handNumber >= HANDS_PER_GAME) {
+    clearSavedGame();
+    return false;
+  }
+  session = {
+    ...newSession(),
+    handNumber: saved.handNumber,
+    game: saved.game,
+    totals: saved.totals,
+    meanings: saved.meanings,
+  };
+  gameStrengths = saved.strengths;
+  chosenStrengths = saved.strengths;
+  screen = 'playing';
+  return true;
 }
 
 const tableIsSet = (): boolean => screen === 'playing' || screen === 'finished';
@@ -799,17 +841,18 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && closeMenu()) render();
 });
 
+// A game left in progress comes straight back; otherwise a bare table.
+if (restoreSavedGame()) advance();
+else render();
+
 watchInstallability(render);
 registerServiceWorker(() => {
   updateWaiting = true;
-  // If she is between hands already, take it now; otherwise the next deal will.
-  if (session.game.phase === 'auction' && session.game.auction.calls.length === 0) {
-    location.reload();
-  } else {
-    render();
-  }
+  // Safe to take now only if there is no game to lose; otherwise the next deal
+  // picks it up. A restored game counts as one to lose.
+  if (screen !== 'playing') location.reload();
+  else render();
 });
-advance();
 
 // Exposed so the browser console can drive a hand without clicking through it,
 // and preview an end-of-hand effect without waiting to be dealt a slam.

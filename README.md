@@ -444,12 +444,23 @@ all while a trick is on the table. Any timer added later gets its own handle.
    width and the touch model but not the browser's own bars, and it has already
    missed a real bug that one screenshot from a phone caught immediately. This is
    the most valuable thing left.
-2. **Save the hand in progress.** Nothing is persisted but the settings, so if
-   the tablet drops the app from memory the game is gone — which bites precisely
-   the "put it down and pick it up an hour later" case. Top of the in-app list.
-3. **Keeping score across games** — the thing she asked for first.
-4. **Then put it in front of her.** The real acceptance test, three hands without
+2. **Keeping score across games** — the thing she asked for first.
+3. **Then put it in front of her.** The real acceptance test, three hands without
    a question, has never been run.
+
+### The game in progress survives being closed
+
+`src/ui/saved.ts`. What is stored is the **history, not the position**: the
+deal's seed, the calls made and the cards played, about 750 bytes. Deals come
+from a seed and every engine function is pure, so replaying that history
+reconstructs the table exactly — and `applyCall`/`applyPlay` refuse anything
+illegal, so a corrupt or stale record throws and is discarded rather than
+restoring a nonsense position. The round trip is checked at **every step of a
+whole hand**, not at one convenient moment.
+
+It is written on every change *including inside `commitCard`*, not only in
+`advance`: the card that completes a trick then waits out the pause, and a save
+taken after that pause would be one card behind what is on the table.
 
 Deliberately missing, and worth leaving missing until asked: Blackwood,
 competition past the first round (about 11% of calls are the system declining to
