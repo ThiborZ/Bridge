@@ -214,7 +214,10 @@ function botMove(): void {
   const { game } = session;
   if (game.phase === 'auction') {
     const seat = turnOf(game)!;
-    const decision = decideCall(game.auction, game.deal.hands[seat], seat);
+    // The chosen strength governs the bidding too, not just the card play.
+    // Without the tier this fell back to the full Acol table, so a Kitchen
+    // table opponent bid like a tournament player and only played badly.
+    const decision = decideCall(game.auction, game.deal.hands[seat], seat, { tier: tierFor(seat) });
     session.meanings.set(game.auction.calls.length, decision.meaning);
     session.game = applyCall(game, decision.call);
     advance();
