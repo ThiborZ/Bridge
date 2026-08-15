@@ -1071,6 +1071,10 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
   padding-left: 10px;
 }
 
+/* version */
+.menu-section.version { gap: 8px; }
+.version-line { font-size: 0.86rem; font-weight: 650; color: var(--text); }
+
 .build-stamp {
   font-family: var(--figures);
   font-size: 0.64rem;

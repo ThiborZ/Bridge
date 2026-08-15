@@ -801,6 +801,8 @@ function render(): void {
     onNewGame: openSetup,
     updateWaiting,
     applyUpdate: () => location.reload(),
+    // Reloading throws away the hand in front of her, so only when there isn't one.
+    safeToReload: screen !== 'playing',
   }));
 
   const children: HTMLElement[] = [table, renderPanel()];

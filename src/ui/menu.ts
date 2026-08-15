@@ -13,7 +13,10 @@
 
 import { SUIT_SYMBOL, button, element } from './dom.js';
 import { ROADMAP } from './roadmap.js';
-import { installState, askToInstall, dismissInstall, BUILD_ID } from './install.js';
+import {
+  installState, askToInstall, dismissInstall, checkForUpdate, BUILD_ID, BUILD_WHEN,
+} from './install.js';
+import type { UpdateCheck } from './install.js';
 import {
   BRIGHTNESS_STEPS, canStepBrightness, currentSettings, stepBrightness, updateSettings,
 } from './settings.js';
@@ -27,6 +30,8 @@ export type MenuHooks = {
   /** True when a newer version has been fetched and is waiting. */
   readonly updateWaiting: boolean;
   readonly applyUpdate: () => void;
+  /** False while a hand is on the table, so a reload would cost her the deal. */
+  readonly safeToReload: boolean;
 };
 
 let open = false;
@@ -279,6 +284,55 @@ function updateSection(hooks: MenuHooks): HTMLElement | null {
   return section;
 }
 
+/**
+ * Which version she is on, and a way to fetch a newer one on the spot.
+ *
+ * The game already checks by itself on every launch and every time she returns
+ * to it, and takes a new version between hands. This is for the case that
+ * cannot be handled automatically: somebody on the telephone asking "what does
+ * it say at the bottom of your menu?" and then "press that button".
+ */
+let checking = false;
+let lastCheck: UpdateCheck | null = null;
+
+function versionSection(hooks: MenuHooks): HTMLElement {
+  const section = element('section', 'menu-section version');
+
+  section.append(element('div', 'version-line', `Versie van ${BUILD_WHEN}`));
+
+  const check = button('action quiet wide', checking ? 'Even kijken…' : 'Controleer op updates', () => {
+    if (checking) return;
+    checking = true;
+    lastCheck = null;
+    hooks.refresh();
+    void checkForUpdate().then((result) => {
+      checking = false;
+      lastCheck = result;
+      // A newer version is no use sitting in the wings; take it straight away,
+      // unless there is a hand on the table to lose.
+      if (result === 'nieuw' && hooks.safeToReload) hooks.applyUpdate();
+      else hooks.refresh();
+    });
+  });
+  check.disabled = checking;
+  section.append(check);
+
+  if (lastCheck === 'actueel') {
+    section.append(element('p', 'hint', 'Je hebt de nieuwste versie.'));
+  } else if (lastCheck === 'nieuw') {
+    // No "hierboven": the other notice moves depending on what else is showing,
+    // and a direction that is wrong half the time is worse than none.
+    section.append(element('p', 'hint',
+      'Er is een nieuwe versie. Die wordt bij het volgende spel vanzelf gebruikt — je hoeft niets te doen.'));
+  } else if (lastCheck === 'onbekend') {
+    section.append(element('p', 'hint',
+      'Kon even niet kijken — waarschijnlijk geen internet. Het spel werkt gewoon door; probeer het later nog eens.'));
+  }
+
+  section.append(element('div', 'build-stamp', BUILD_ID));
+  return section;
+}
+
 /* ------------------------------------------------------------------- menu */
 
 export function renderMenu(hooks: MenuHooks): HTMLElement {
@@ -373,7 +427,7 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
   if (expanded === 'roadmap') coming.append(roadmapList());
   panel.append(coming);
 
-  panel.append(element('div', 'build-stamp', `versie ${BUILD_ID}`));
+  panel.append(versionSection(hooks));
 
   root.append(panel);
   return root;

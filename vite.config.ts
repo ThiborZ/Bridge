@@ -19,6 +19,12 @@ function buildId(): string {
 export default defineConfig({
   define: {
     __BUILD_ID__: JSON.stringify(buildId()),
+    /*
+     * When this build was made. "versie 4cbca69" means nothing to the person
+     * playing — a date can be read out over the telephone and compared, which
+     * is what makes "are you on the newest one?" an answerable question.
+     */
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
   },
   /*
    * Relative asset paths, so the built page works wherever it is served from —

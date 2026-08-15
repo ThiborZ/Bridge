@@ -135,6 +135,57 @@ export const BUILD_ID: string =
   typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
 
 /**
+ * The build date, written the way somebody would say it: "14 augustus, 19:20".
+ * This is the version she can read out, and the one you can check against.
+ */
+export const BUILD_WHEN: string = (() => {
+  if (typeof __BUILD_DATE__ !== 'string') return 'onbekend';
+  const when = new Date(__BUILD_DATE__);
+  if (Number.isNaN(when.getTime())) return 'onbekend';
+  return new Intl.DateTimeFormat('nl-NL', {
+    day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+  }).format(when);
+})();
+
+export type UpdateCheck = 'nieuw' | 'actueel' | 'onbekend';
+
+/**
+ * Ask the browser, right now, whether there is a newer version.
+ *
+ * The automatic check covers almost everything — on launch, and every time she
+ * comes back to the app. But "almost" is not something you can say down a
+ * telephone. This is the button that answers it on demand, so the instruction
+ * can be "open the menu and press Controleer op updates" rather than a
+ * description of how to clear a browser cache.
+ */
+export async function checkForUpdate(): Promise<UpdateCheck> {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return 'onbekend';
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return 'onbekend';
+    await registration.update();
+
+    const pending = registration.installing ?? registration.waiting;
+    if (!pending) return 'actueel';
+    if (pending.state === 'installed') return 'nieuw';
+
+    // It is still downloading; wait for it to settle rather than guess.
+    return await new Promise<UpdateCheck>((resolve) => {
+      const settle = () => {
+        if (pending.state === 'installed') resolve('nieuw');
+        else if (pending.state === 'redundant') resolve('actueel');
+      };
+      pending.addEventListener('statechange', settle);
+      // Offline or a slow connection should not leave the button spinning.
+      window.setTimeout(() => resolve('onbekend'), 8000);
+    });
+  } catch {
+    // update() throws when there is no connection — which is not "up to date".
+    return 'onbekend';
+  }
+}
+
+/**
  * Registering the worker is what makes the browser consider the page
  * installable at all. Only in a built site: in development it would serve
  * yesterday's code back from the cache and waste an afternoon.
