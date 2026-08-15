@@ -1192,6 +1192,89 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
   .auction { max-width: 340px; }
 }
 
+/*
+ * A phone held upright. Deliberately after the tablet block, because it has to
+ * win: both match at 375px wide, and the later rule takes it.
+ *
+ * The stacked layout made the page 1360px tall inside an 812px window, which
+ * put the bidding box below the fold — every bid meant scrolling down to the
+ * box and back up to see the table. So the page is pinned to the viewport and
+ * never scrolls as a whole; each half scrolls on its own if it must, and the
+ * two phases get the room they actually need.
+ */
+@media (max-width: 700px) and (orientation: portrait) {
+  #app {
+    height: 100dvh;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  .table { min-height: 0; padding: 10px; }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 58dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px 14px 18px;
+    gap: 12px;
+  }
+
+  /* Bidding: the other three hands are anonymous card backs, so they go. */
+  :root[data-phase="auction"] .seat-north .hand,
+  :root[data-phase="auction"] .seat-east .hand,
+  :root[data-phase="auction"] .seat-west .hand { display: none; }
+  :root[data-phase="auction"] .table::after { display: none; }
+  :root[data-phase="auction"] .middle { min-height: 0; }
+  :root[data-phase="auction"] .middle-message { position: static; padding: 4px; }
+  :root[data-phase="auction"] .middle-message strong { font-size: 1rem; margin-bottom: 2px; }
+  /*
+   * While she is bidding the table shrinks to whatever her own cards need and
+   * the panel takes the rest, rather than the two splitting a fixed percentage.
+   * That is what gets the whole box — Pas included — above the fold.
+   */
+  :root[data-phase="auction"] #app { grid-template-rows: auto minmax(0, 1fr); }
+  :root[data-phase="auction"] .panel {
+    max-height: none;
+    padding: 10px 14px 8px;
+    gap: 10px;
+  }
+  :root[data-phase="auction"] .table { padding: 8px 10px 4px; }
+  :root[data-phase="auction"] .bid { min-height: 44px; padding: 6px 0; }
+  /* Vulnerability is on the nameplates; the deal id is for me, not for her. */
+  :root[data-phase="auction"] .deal-line { display: none; }
+
+  /* Playing: the table is the game, so the panel keeps to a strip. */
+  :root[data-phase="play"] .panel { max-height: 27dvh; }
+}
+
+/*
+ * A phone on its side is short, not narrow — stacking would leave the table a
+ * couple of hundred pixels tall, so it keeps the panel beside the felt.
+ */
+@media (max-height: 520px) and (orientation: landscape) {
+  #app {
+    height: 100dvh;
+    grid-template-columns: 1fr minmax(190px, 32vw);
+    grid-template-rows: 1fr;
+    overflow: hidden;
+  }
+  .table { min-height: 0; padding: 8px; }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--panel-line);
+    border-top: none;
+    max-height: 100dvh;
+    overflow-y: auto;
+    padding: 12px;
+    gap: 10px;
+  }
+  .bid { min-height: 38px; padding: 5px 0; font-size: 0.84rem; }
+  .nameplate { padding: 3px 9px; font-size: 0.64rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }

@@ -764,6 +764,14 @@ function restoreSavedGame(): boolean {
 const tableIsSet = (): boolean => screen === 'playing' || screen === 'finished';
 
 function render(): void {
+  /*
+   * The phase drives the phone layout. During the auction the felt is three
+   * face-down hands and an empty middle — worth nothing — while the bidding box
+   * sits below the fold, so on a narrow screen the space is given to the cards
+   * she is bidding on and to the box. During the play the table is the game.
+   */
+  document.documentElement.dataset.phase = screen === 'playing' ? session.game.phase : 'idle';
+
   const table = element('div', 'table');
   if (tableIsSet()) {
     table.append(
