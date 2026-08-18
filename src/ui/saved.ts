@@ -22,6 +22,7 @@ import type { Call } from '../auction.js';
 import type { Game } from '../game.js';
 import { applyCall, applyPlay, chicagoDeal, newGame } from '../game.js';
 import type { Tier } from '../bots/levels.js';
+import type { HandRecord } from './history.js';
 import { TIERS } from '../bots/levels.js';
 
 const STORAGE_KEY = 'bridge.game';
@@ -42,6 +43,16 @@ export type SavedGame = {
   /** What each bot bid meant, by position — regenerating it could disagree with
    *  the rules that produced it, so it travels with the game. */
   readonly meanings: ReadonlyArray<readonly [number, string]>;
+  /**
+   * The hands already finished in this game, for the score record.
+   *
+   * Optional on purpose: adding it without bumping the format means a save
+   * written before this existed still restores. Those games record only the
+   * hands played after the restore, which is a worse statistic but not a lost
+   * game — and bumping the format would have thrown away whatever hand she had
+   * on the table at the moment this shipped.
+   */
+  readonly hands?: readonly HandRecord[];
 };
 
 export type Restored = {
@@ -50,6 +61,7 @@ export type Restored = {
   readonly totals: { NS: number; EW: number };
   readonly strengths: Strengths;
   readonly meanings: Map<number, string>;
+  readonly hands: readonly HandRecord[];
 };
 
 /** Every card played so far, in play order. */
@@ -67,6 +79,7 @@ export function serialise(
   totals: { NS: number; EW: number },
   strengths: Strengths,
   meanings: Map<number, string>,
+  hands: readonly HandRecord[] = [],
 ): SavedGame {
   return {
     v: FORMAT,
@@ -77,6 +90,7 @@ export function serialise(
     totals: { NS: totals.NS, EW: totals.EW },
     strengths,
     meanings: [...meanings.entries()],
+    hands: [...hands],
   };
 }
 
@@ -105,6 +119,8 @@ export function reconstruct(saved: unknown): Restored | null {
       totals: { NS: Number(record.totals?.NS ?? 0), EW: Number(record.totals?.EW ?? 0) },
       strengths: record.strengths,
       meanings: new Map(record.meanings ?? []),
+      // Absent in saves written before the score record existed.
+      hands: Array.isArray(record.hands) ? record.hands : [],
     };
   } catch {
     // An illegal call or card means the record does not describe a real game.
@@ -118,11 +134,12 @@ export function saveGame(
   totals: { NS: number; EW: number },
   strengths: Strengths,
   meanings: Map<number, string>,
+  hands: readonly HandRecord[] = [],
 ): void {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(serialise(game, handNumber, totals, strengths, meanings)),
+      JSON.stringify(serialise(game, handNumber, totals, strengths, meanings, hands)),
     );
   } catch {
     // Full quota or private browsing: the game simply will not survive a reload.

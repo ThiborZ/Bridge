@@ -28,11 +28,6 @@ export const ROADMAP: readonly Item[] = [
       'Na afloop zie je hoeveel slagen er met open kaarten te halen waren. Haalde je er net zoveel, dan staat er “optimaal gespeeld” — en dat is niet makkelijk.',
   },
   {
-    title: 'Punten bijhouden',
-    detail:
-      'Een totaal over een hele avond, en cijfers om op terug te kijken: hoeveel contracten je maakt, je beste resultaat, en hoe je het doet tegen elke sterkte.',
-  },
-  {
     title: 'Nog een keer, zelfde kaarten',
     detail:
       'Dezelfde hand nog een keer spelen, nu je weet waar alles zit. De snelste manier om te zien of het anders had gekund.',
@@ -65,6 +60,12 @@ export const ROADMAP: readonly Item[] = [
     title: 'Meer biedsysteem',
     detail:
       'Blackwood voor slems, en doorbieden als de tegenpartij ertussen komt. Nu passen de computerspelers op plekken waar een mens dat niet zou doen.',
+  },
+  {
+    title: 'Punten bijhouden',
+    detail:
+      'Een totaal over een hele avond, en cijfers om op terug te kijken: hoeveel contracten je maakt, je beste resultaat, en hoe je het doet tegen elke sterkte. Staat in het menu onder Jouw resultaten.',
+    done: true,
   },
   {
     title: 'Drie sterktes',

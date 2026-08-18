@@ -1282,3 +1282,13 @@ button[data-side="right"] .side-glyph::after { right: 1px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* results */
+.results { display: flex; flex-direction: column; gap: 12px; }
+.results .breakdown td:first-child { color: var(--text-soft); }
+.personal-best {
+  margin: 0;
+  color: var(--brass);
+  font-weight: 650;
+  font-size: 0.94rem;
+}

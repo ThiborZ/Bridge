@@ -97,6 +97,10 @@ export type FinishedHooks = {
   readonly northSouth: number;
   readonly eastWest: number;
   readonly strengths: Strengths;
+  /** True when this beats every game she has played before. */
+  readonly record: boolean;
+  /** How many games came before this one, for "her second game" and so on. */
+  readonly gamesBefore: number;
   readonly onClear: () => void;
 };
 
@@ -131,6 +135,10 @@ export function renderFinished(hooks: FinishedHooks): HTMLElement {
   );
   table.append(margin);
   card.append(table);
+
+  if (hooks.record) {
+    card.append(element('p', 'personal-best', 'Je beste resultaat tot nu toe.'));
+  }
 
   const actions = element('div', 'home-actions');
   actions.append(button('action', 'Tafel opruimen', hooks.onClear));

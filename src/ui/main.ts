@@ -45,6 +45,8 @@ import { markWelcomeSeen, renderWelcome } from './welcome.js';
 import { HANDS_PER_GAME, renderFinished, renderSetup } from './screens.js';
 import type { Strengths } from './screens.js';
 import { clearSavedGame, loadGame, saveGame } from './saved.js';
+import { isPersonalBest, loadHistory, recordGame } from './history.js';
+import type { GameRecord, HandRecord } from './history.js';
 import { celebrate, celebrationFor, clearCelebration, headlineFor } from './celebrate.js';
 import type { Celebration } from './celebrate.js';
 
@@ -95,6 +97,14 @@ type Session = {
   meanings: Map<number, string>;
   /** How the hand just finished, for the effect and the headline. */
   celebration: Celebration;
+  /** Each finished hand, for the record written when the game ends. */
+  hands: HandRecord[];
+  /**
+   * Whether the hand on the table has already been counted. The totals survived
+   * without this because nothing calls it twice today — but a duplicated
+   * statistic persists, where a duplicated total only lasts a game.
+   */
+  recorded: boolean;
   rng: () => number;
 };
 
@@ -141,6 +151,13 @@ let pauseTimer: number | undefined;
 /** On touch, the card lifted and waiting for a second tap to play it. */
 let selectedCard: Card | null = null;
 
+/**
+ * The games played before the one just finished, read at the moment it ends.
+ * A personal best has to be measured against what came before, not against a
+ * record that already includes itself.
+ */
+let previousGames: readonly GameRecord[] = [];
+
 function newSession(): Session {
   const rng = mulberry32(Date.now() >>> 0);
   return {
@@ -150,6 +167,8 @@ function newSession(): Session {
     pendingTrick: null,
     meanings: new Map(),
     celebration: 'none',
+    hands: [],
+    recorded: false,
     rng,
   };
 }
@@ -195,7 +214,10 @@ function exposedDummy(game: Game): Seat | null {
  */
 function remember(): void {
   if (screen !== 'playing') return;
-  saveGame(session.game, session.handNumber, session.totals, gameStrengths, session.meanings);
+  saveGame(
+    session.game, session.handNumber, session.totals, gameStrengths, session.meanings,
+    session.hands,
+  );
 }
 
 function advance(): void {
@@ -264,11 +286,23 @@ function commitCard(card: Card): void {
 }
 
 function finishHandIfOver(): void {
-  if (session.game.phase !== 'complete') return;
+  if (session.game.phase !== 'complete' || session.recorded) return;
   const result = resultOf(session.game);
   if (!result) return;
+  session.recorded = true;
   session.totals.NS += result.northSouthScore;
   session.totals.EW -= result.northSouthScore;
+
+  // A passed-out hand has no declarer and no contract: it is neither made nor
+  // failed, and counting it as a failure would drag her record down for doing
+  // nothing wrong.
+  session.hands.push({
+    declaredByUs: result.contract ? sideOf(result.contract.declarer) === 'NS' : null,
+    made: result.breakdown ? result.breakdown.made : null,
+    northSouth: result.northSouthScore,
+    level: result.contract?.level ?? 0,
+    strain: result.contract?.strain ?? '',
+  });
 
   // Scaled to what her side won, which is why beating their contract counts too.
   session.celebration = celebrationFor(result.northSouthScore, result.contract?.level ?? 0);
@@ -295,6 +329,17 @@ function nextHand(): void {
     window.clearTimeout(pauseTimer);
     clearCelebration();
     clearSavedGame(); // the game is over; there is nothing to come back to
+    // Read the earlier games before adding this one, so a personal best is
+    // measured against what came before rather than against itself.
+    previousGames = loadHistory();
+    recordGame({
+      at: Date.now(),
+      opponents: currentSettings().opponents,
+      partner: currentSettings().partner,
+      northSouth: session.totals.NS,
+      eastWest: session.totals.EW,
+      hands: [...session.hands],
+    });
     screen = 'finished';
     render();
     return;
@@ -307,6 +352,7 @@ function nextHand(): void {
   session.pendingTrick = null;
   session.meanings.clear();
   session.celebration = 'none';
+  session.recorded = false;
   clearCelebration();
   advance();
 }
@@ -754,6 +800,9 @@ function restoreSavedGame(): boolean {
     game: saved.game,
     totals: saved.totals,
     meanings: saved.meanings,
+    hands: [...saved.hands],
+    // The hand being restored has not been counted yet; it is still in play.
+    recorded: false,
   };
   gameStrengths = saved.strengths;
   chosenStrengths = saved.strengths;
@@ -820,6 +869,8 @@ function render(): void {
       northSouth: session.totals.NS,
       eastWest: session.totals.EW,
       strengths: gameStrengths,
+      record: isPersonalBest(session.totals.NS, previousGames),
+      gamesBefore: previousGames.length,
       onClear: clearTable,
     }));
   }

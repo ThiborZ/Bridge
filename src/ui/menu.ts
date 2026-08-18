@@ -13,6 +13,8 @@
 
 import { SUIT_SYMBOL, button, element } from './dom.js';
 import { ROADMAP } from './roadmap.js';
+import { clearHistory, loadHistory, summarise } from './history.js';
+import type { Tier } from '../bots/levels.js';
 import {
   installState, askToInstall, dismissInstall, checkForUpdate, BUILD_ID, BUILD_WHEN,
 } from './install.js';
@@ -35,7 +37,7 @@ export type MenuHooks = {
 };
 
 let open = false;
-let expanded: 'none' | 'roadmap' | 'ios' = 'none';
+let expanded: 'none' | 'roadmap' | 'results' | 'ios' = 'none';
 
 export function isMenuOpen(): boolean {
   return open;
@@ -333,6 +335,80 @@ function versionSection(hooks: MenuHooks): HTMLElement {
   return section;
 }
 
+
+/**
+ * How she is doing, across every game she has played.
+ *
+ * Deliberately plain numbers rather than badges or levels: she is an
+ * experienced player, and a record worth reading is one she can argue with.
+ */
+const TIER_LABEL: Record<Tier, string> = {
+  kitchen: 'huiskamer',
+  club: 'clubavond',
+  tournament: 'wedstrijd',
+};
+
+let confirmingWipe = false;
+
+function row(label: string, value: string): HTMLElement {
+  const tr = element('tr');
+  tr.append(element('td', undefined, label), element('td', undefined, value));
+  return tr;
+}
+
+function resultsList(hooks: MenuHooks): HTMLElement {
+  const wrapper = element('div', 'results');
+  const games = loadHistory();
+  const summary = summarise(games);
+
+  if (summary.games === 0) {
+    wrapper.append(element('p', 'hint',
+      'Nog niets om te laten zien. Zodra je een spel van vier gevers uitspeelt, komt het hier te staan.'));
+    return wrapper;
+  }
+
+  const table = element('table', 'breakdown');
+  table.append(row('Spellen gespeeld', String(summary.games)));
+  table.append(row('Gewonnen', `${summary.won} van ${summary.games}`));
+  if (summary.drawn > 0) table.append(row('Gelijkgespeeld', String(summary.drawn)));
+  table.append(row('Beste resultaat', String(summary.best ?? 0)));
+  table.append(row('Gemiddeld per spel', String(summary.average)));
+  table.append(row('Contracten gemaakt',
+    summary.madeShare === null
+      ? 'nog geen'
+      : `${summary.made} van ${summary.declared} (${Math.round(summary.madeShare * 100)}%)`));
+  if (summary.bestStreak > 1) {
+    table.append(row('Langste reeks', `${summary.bestStreak} op rij`));
+  }
+  wrapper.append(table);
+
+  if (summary.currentStreak > 1) {
+    wrapper.append(element('p', 'hint', `Je hebt er nu ${summary.currentStreak} op rij gewonnen.`));
+  }
+
+  if (summary.byStrength.length > 1) {
+    wrapper.append(element('h3', 'roadmap-heading', 'Per sterkte'));
+    const split = element('table', 'breakdown');
+    for (const line of summary.byStrength) {
+      split.append(row(
+        TIER_LABEL[line.tier],
+        `${line.won}/${line.games} gewonnen · gem. ${line.average}`,
+      ));
+    }
+    wrapper.append(split);
+  }
+
+  const wipe = button('action quiet wide',
+    confirmingWipe ? 'Zeker weten? Tik nog een keer' : 'Resultaten wissen', () => {
+      if (!confirmingWipe) { confirmingWipe = true; hooks.refresh(); return; }
+      clearHistory();
+      confirmingWipe = false;
+      hooks.refresh();
+    });
+  wrapper.append(wipe);
+  return wrapper;
+}
+
 /* ------------------------------------------------------------------- menu */
 
 export function renderMenu(hooks: MenuHooks): HTMLElement {
@@ -417,6 +493,16 @@ export function renderMenu(hooks: MenuHooks): HTMLElement {
   panel.append(light);
 
   panel.append(installSection(hooks.refresh));
+
+  const results = element('section', 'menu-section');
+  results.append(button('action quiet wide',
+    expanded === 'results' ? 'Verberg resultaten' : 'Jouw resultaten', () => {
+      expanded = expanded === 'results' ? 'none' : 'results';
+      confirmingWipe = false;
+      hooks.refresh();
+    }));
+  if (expanded === 'results') results.append(resultsList(hooks));
+  panel.append(results);
 
   const coming = element('section', 'menu-section');
   coming.append(button('action quiet wide',
